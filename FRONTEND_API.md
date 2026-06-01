@@ -49,7 +49,7 @@ later account/payment endpoints, Epic 6.0.) Just `fetch()` directly from the bro
 ### 4.1 `GET /api/v1/stations.geojson` — primary map layer ⭐
 Drop straight into Leaflet/Mapbox. Call on map load and on pan/zoom with the viewport `bbox`.
 
-Query params: `bbox`, `source` (filter to stations that include this source), `province`, `city`, `q`, `min_power`, `max_power`,
+Query params: `bbox`, `province`, `city`, `q`, `min_power`, `max_power`, `connector_type`, `speed_tier`,
 `limit` (default 5000, max 20000).
 
 ```js
@@ -79,7 +79,6 @@ Response (RFC 7946 FeatureCollection):
         "speed_tier": "medium",
         "connector_types": ["AC Type 2"],
         "connector_inferred": true,
-        "sources": ["pln_spklu"],
         "status": "operational",
         "date_verified": null
       }
@@ -93,7 +92,7 @@ Satisfies AC 1.1.1 (default 5 km radius). Results are sorted by distance and eac
 `distance_km`.
 
 Query params: `lat` (req), `lon` (req), `radius_km` (default 5, max 500),
-`limit` (default 20, max 200), `source` (filter to stations that include this source).
+`limit` (default 20, max 200).
 
 ```js
 const near = await (await fetch(
@@ -125,7 +124,6 @@ Same filters as the GeoJSON endpoint, plus `limit` (default 100, max 1000) and `
 
 | Endpoint | Returns | Use |
 |---|---|---|
-| `GET /api/v1/sources` | `[{source, count}]` | Source toggles (PLN / OCM / OSM) |
 | `GET /api/v1/provinces` | `[{name, count}]` | Province dropdown |
 | `GET /api/v1/cities?province=` | `[{name, count}]` | City dropdown (cascades from province) |
 | `GET /api/v1/connectors` | `[{name, count}]` | **Connector-type chips** (CCS2 / AC Type 2 …) — AC 1.2.1 |
@@ -133,9 +131,6 @@ Same filters as the GeoJSON endpoint, plus `limit` (default 100, max 1000) and `
 | `GET /api/v1/stats` | totals + breakdowns | Landing-page summary chips |
 
 ```json
-// GET /api/v1/sources
-[ { "source": "pln_spklu", "count": 1142 }, { "source": "open_charge_map", "count": 527 }, { "source": "osm", "count": 13 } ]
-
 // GET /api/v1/connectors  (counts are over inferred connector types — see §5)
 [ { "name": "CCS2", "count": 1320 }, { "name": "AC Type 2", "count": 980 } ]
 
@@ -206,7 +201,7 @@ Two ways to express the battery range:
 - **Pass a number:** `max_range_km` — if you've already computed remaining range yourself.
 
 `ev_model_id` overrides `max_range_km`. Other params: `lat`, `lon` (required),
-`weight` (`length`|`travel_time`), `source` (optional filter).
+`weight` (`length`|`travel_time`).
 
 ```js
 // the user selected their car + saw their charge level — send those, not maths
@@ -259,7 +254,7 @@ Not every field is populated. Coverage by source (from our data analysis):
 
 | Field | Reliability | UI guidance |
 |---|---|---|
-| `sources` (list of contributing datasets, deduplicated) | ✅ All stations | Use for source-toggle filters; a station deduped from multiple datasets carries multiple entries |
+| `sources` (list of contributing datasets, deduplicated) | ✅ All stations | Informational only (which datasets list this station, e.g. a "verified by" badge). Not a filter. |
 | `latitude` / `longitude` | ✅ All sources | Always present |
 | `power_kw` | ✅ Good | Safe |
 | `speed_tier` (slow/medium/fast/ultra_fast) | ✅ Derived from `power_kw` | **Best filter to expose** |

@@ -18,7 +18,7 @@ from . import connectors as conn
 from . import stations_repo as repo
 from .models import (
     EVModel, EVModelList, GeoJSONFeatureCollection, Health, NameCount,
-    NearestStationRoute, Route, Source, SourceCount, SpeedTier, Station,
+    NearestStationRoute, Route, SourceCount, SpeedTier, Station,
     StationList, Stats,
 )
 
@@ -96,7 +96,6 @@ def health() -> Health:
 @app.get("/api/v1/stations", response_model=StationList, tags=["stations"],
          summary="List / filter charging stations")
 def list_stations(
-    source: Optional[Source] = Query(None, description="Filter by dataset."),
     province: Optional[str] = Query(None, description="Exact province match (case-insensitive), e.g. 'DKI Jakarta'."),
     city: Optional[str] = Query(None, description="City/kabupaten substring match."),
     q: Optional[str] = Query(None, description="Case-insensitive search on station name."),
@@ -109,8 +108,8 @@ def list_stations(
     limit: int = Query(100, ge=1, le=1000, description="Page size."),
     offset: int = Query(0, ge=0, description="Page offset."),
 ) -> StationList:
-    filters = {"source": source.value if source else None, "province": province,
-               "city": city, "q": q, "min_power": min_power, "max_power": max_power,
+    filters = {"province": province, "city": city, "q": q,
+               "min_power": min_power, "max_power": max_power,
                "connector_type": connector_type, "speed_tier": speed_tier, "bbox": _bbox(bbox)}
     total, rows = repo.list_stations(filters, limit, offset)
     return StationList(total=total, limit=limit, offset=offset,
@@ -120,9 +119,8 @@ def list_stations(
 @app.get("/api/v1/stations/nearby", response_model=list[Station], tags=["stations"],
          summary="Nearest stations to a point ('near me')")
 def nearby(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180),
-           radius_km: float = Query(5.0, gt=0, le=500), limit: int = Query(20, ge=1, le=200),
-           source: Optional[Source] = Query(None)) -> list[Station]:
-    rows = repo.nearby(lat, lon, radius_km, limit, source.value if source else None)
+           radius_km: float = Query(5.0, gt=0, le=500), limit: int = Query(20, ge=1, le=200)) -> list[Station]:
+    rows = repo.nearby(lat, lon, radius_km, limit)
     return [_row_to_station(r) for r in rows]
 
 
@@ -138,7 +136,6 @@ def get_station(station_id: str) -> Station:
 @app.get("/api/v1/stations.geojson", response_model=GeoJSONFeatureCollection, tags=["geo"],
          summary="Stations as a GeoJSON FeatureCollection")
 def stations_geojson(
-    source: Optional[Source] = Query(None),
     province: Optional[str] = Query(None),
     city: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
@@ -148,8 +145,8 @@ def stations_geojson(
     speed_tier: Optional[str] = Query(None),
     bbox: Optional[str] = Query(None), limit: int = Query(5000, ge=1, le=20000),
 ) -> GeoJSONFeatureCollection:
-    filters = {"source": source.value if source else None, "province": province, "city": city,
-               "q": q, "min_power": min_power, "max_power": max_power,
+    filters = {"province": province, "city": city, "q": q,
+               "min_power": min_power, "max_power": max_power,
                "connector_type": connector_type, "speed_tier": speed_tier, "bbox": _bbox(bbox)}
     _, rows = repo.list_stations(filters, limit, 0)
     features = []
@@ -203,7 +200,6 @@ def route(
 def nearest_station(
     lat: float = Query(..., ge=-90, le=90, description="Origin latitude.", examples=[-6.2088]),
     lon: float = Query(..., ge=-180, le=180, description="Origin longitude.", examples=[106.8456]),
-    source: Optional[Source] = Query(None, description="Optional source filter."),
     weight: str = Query("length", pattern="^(length|travel_time)$",
                         description="Rank by 'length' (nearest) or 'travel_time' (quickest)."),
     max_range_km: Optional[float] = Query(
@@ -226,7 +222,7 @@ def nearest_station(
         if range_used is None:
             raise HTTPException(422, f"range unknown for ev model '{ev_model_id}'; pass max_range_km instead")
 
-    coords = repo.routing_coords(source.value if source else None)
+    coords = repo.routing_coords()
     if not coords:
         raise HTTPException(404, "no charging stations loaded")
 

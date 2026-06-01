@@ -25,16 +25,6 @@ paths:
       summary: List / filter charging stations
       operationId: list_stations_api_v1_stations_get
       parameters:
-      - name: source
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - $ref: '#/components/schemas/Source'
-          - type: 'null'
-          description: Filter by dataset.
-          title: Source
-        description: Filter by dataset.
       - name: province
         in: query
         required: false
@@ -198,14 +188,6 @@ paths:
           minimum: 1
           default: 20
           title: Limit
-      - name: source
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - $ref: '#/components/schemas/Source'
-          - type: 'null'
-          title: Source
       responses:
         '200':
           description: Successful Response
@@ -257,14 +239,6 @@ paths:
       summary: Stations as a GeoJSON FeatureCollection
       operationId: stations_geojson_api_v1_stations_geojson_get
       parameters:
-      - name: source
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - $ref: '#/components/schemas/Source'
-          - type: 'null'
-          title: Source
       - name: province
         in: query
         required: false
@@ -474,16 +448,6 @@ paths:
           - 106.8456
           title: Lon
         description: Origin longitude.
-      - name: source
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - $ref: '#/components/schemas/Source'
-          - type: 'null'
-          description: Optional source filter.
-          title: Source
-        description: Optional source filter.
       - name: weight
         in: query
         required: false
