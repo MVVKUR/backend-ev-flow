@@ -43,7 +43,6 @@ app = FastAPI(
     title="Jakarta EV Charging Stations API",
     version=__version__,
     openapi_tags=TAGS,
-    contact={"name": "EV-FLOW", "email": "softopen24@gmail.com"},
     license_info={"name": "Data: PLN, OCM (CC-BY-SA), OSM (ODbL)"},
     lifespan=lifespan,
 )
