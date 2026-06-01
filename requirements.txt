@@ -27,3 +27,6 @@ networkx>=3.0        # routing endpoint (Dijkstra graph); also pulled in by osmn
 # osmnx (above) is needed only to BUILD the road graph once; at runtime the API
 # loads the cached GraphML with networkx alone.
 pytest>=8.0          # test suite
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
+alembic>=1.13
