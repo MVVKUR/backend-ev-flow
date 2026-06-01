@@ -15,10 +15,10 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import __version__, data
+from . import __version__, data, evmodels
 from .models import (
-    GeoJSONFeatureCollection, Health, NameCount, Source, SourceCount,
-    Station, StationList, Stats,
+    EVModel, EVModelList, GeoJSONFeatureCollection, Health, NameCount,
+    NearestStationRoute, Route, Source, SourceCount, Station, StationList, Stats,
 )
 
 DESCRIPTION = """
@@ -36,6 +36,7 @@ TAGS = [
     {"name": "stations", "description": "Query and fetch charging stations."},
     {"name": "geo", "description": "GeoJSON output for direct map rendering."},
     {"name": "meta", "description": "Stats and filter look-ups (sources, provinces, cities)."},
+    {"name": "ev-models", "description": "EV model catalogue (battery / range) for range-aware routing."},
     {"name": "system", "description": "Health/diagnostics."},
 ]
 
@@ -213,6 +214,117 @@ def stations_geojson(
             "properties": props,
         })
     return GeoJSONFeatureCollection(type="FeatureCollection", features=features)
+
+
+@app.get("/api/v1/route", response_model=Route, tags=["geo"],
+         summary="Shortest driving path (Dijkstra) to a point or station",
+         responses={404: {"description": "Station not found / no drivable route"},
+                    422: {"description": "Destination not provided"},
+                    503: {"description": "Road graph unavailable (not built yet)"}})
+def route(
+    lat: float = Query(..., ge=-90, le=90, description="Origin latitude.", examples=[-6.2088]),
+    lon: float = Query(..., ge=-180, le=180, description="Origin longitude.", examples=[106.8456]),
+    station_id: Optional[str] = Query(None, description="Destination = this station's coordinates."),
+    dest_lat: Optional[float] = Query(None, ge=-90, le=90, description="Destination latitude (if no station_id)."),
+    dest_lon: Optional[float] = Query(None, ge=-180, le=180, description="Destination longitude (if no station_id)."),
+    weight: str = Query("length", pattern="^(length|travel_time)$",
+                        description="Minimise 'length' (shortest) or 'travel_time' (fastest)."),
+) -> Route:
+    if station_id:
+        hit = data.load()[data.load()["id"] == station_id]
+        if hit.empty:
+            raise HTTPException(404, f"station '{station_id}' not found")
+        dest_lat, dest_lon = float(hit.iloc[0]["latitude"]), float(hit.iloc[0]["longitude"])
+    elif dest_lat is None or dest_lon is None:
+        raise HTTPException(422, "provide either 'station_id' or both 'dest_lat' and 'dest_lon'")
+
+    from . import routing  # deferred: pulls in networkx/the road graph only when routing is used
+    try:
+        result = routing.shortest_path(lat, lon, dest_lat, dest_lon, weight=weight)
+    except routing.GraphUnavailable as e:
+        raise HTTPException(503, f"routing unavailable: {e}")
+    if result is None:
+        raise HTTPException(404, "no drivable route found between the two points")
+    if station_id:
+        result["destination"]["station_id"] = station_id
+    return result
+
+
+@app.get("/api/v1/route/nearest-station", response_model=NearestStationRoute, tags=["geo"],
+         summary="Nearest charging station reachable by road (Dijkstra) + route to it",
+         responses={404: {"description": "No stations loaded / none reachable by road"},
+                    503: {"description": "Road graph unavailable (not built yet)"}})
+def nearest_station(
+    lat: float = Query(..., ge=-90, le=90, description="Origin latitude.", examples=[-6.2088]),
+    lon: float = Query(..., ge=-180, le=180, description="Origin longitude.", examples=[106.8456]),
+    source: Optional[Source] = Query(None, description="Optional source filter."),
+    weight: str = Query("length", pattern="^(length|travel_time)$",
+                        description="Rank by 'length' (nearest) or 'travel_time' (quickest)."),
+    max_range_km: Optional[float] = Query(
+        None, gt=0,
+        description="EV remaining range (km). Flags whether the nearest charger is within reach (Route & Battery)."),
+    ev_model_id: Optional[str] = Query(
+        None, description="EV model id (see /api/v1/ev-models). With current_soc the backend derives the "
+                          "remaining range — overrides max_range_km."),
+    current_soc: Optional[float] = Query(
+        None, ge=0, le=100, description="Current state of charge (%); required when ev_model_id is given."),
+) -> NearestStationRoute:
+    df = data.load()
+    if source is not None:
+        df = df[df["source"] == source.value]
+    if df.empty:
+        raise HTTPException(404, "no charging stations loaded")
+
+    range_used = max_range_km
+    if ev_model_id is not None:
+        if current_soc is None:
+            raise HTTPException(422, "current_soc is required when ev_model_id is given")
+        model = evmodels.get(ev_model_id)
+        if model is None:
+            raise HTTPException(404, f"ev model '{ev_model_id}' not found")
+        range_used = evmodels.remaining_range_km(model["range_km"], current_soc)
+        if range_used is None:
+            raise HTTPException(422, f"range unknown for ev model '{ev_model_id}'; pass max_range_km instead")
+
+    from . import routing  # deferred: pulls in networkx/the road graph only when routing is used
+    try:
+        result = routing.nearest_station_route(
+            lat, lon, df["id"].tolist(), df["latitude"].to_numpy(), df["longitude"].to_numpy(),
+            weight=weight, max_range_km=range_used,
+        )
+    except routing.GraphUnavailable as e:
+        raise HTTPException(503, f"routing unavailable: {e}")
+    if result is None:
+        raise HTTPException(404, "no charging station reachable by road from this point")
+
+    hit = df[df["id"] == result["station_id"]].iloc[0]
+    return NearestStationRoute(
+        station=_row_to_station(hit, distance_km=result["route"]["distance_m"] / 1000.0),
+        route=result["route"],
+        candidates_considered=result["candidates_considered"],
+        within_range=result["within_range"],
+        range_used_km=range_used,
+    )
+
+
+@app.get("/api/v1/ev-models", response_model=EVModelList, tags=["ev-models"],
+         summary="List EV models (catalogue from the Kaggle Indonesia-EV-2026 dataset)")
+def ev_models(
+    q: Optional[str] = Query(None, description="Case-insensitive search on vehicle name."),
+    limit: int = Query(100, ge=1, le=500, description="Page size."),
+    offset: int = Query(0, ge=0, description="Page offset."),
+) -> EVModelList:
+    total, items = evmodels.search(q, limit, offset)
+    return EVModelList(total=total, limit=limit, offset=offset, items=[EVModel(**m) for m in items])
+
+
+@app.get("/api/v1/ev-models/{model_id}", response_model=EVModel, tags=["ev-models"],
+         summary="Fetch one EV model by id", responses={404: {"description": "Not found"}})
+def ev_model(model_id: str) -> EVModel:
+    m = evmodels.get(model_id)
+    if m is None:
+        raise HTTPException(404, f"ev model '{model_id}' not found")
+    return EVModel(**m)
 
 
 @app.get("/api/v1/stats", response_model=Stats, tags=["meta"], summary="Aggregate statistics")

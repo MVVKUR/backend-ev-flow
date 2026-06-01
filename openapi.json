@@ -547,6 +547,423 @@
         }
       }
     },
+    "/api/v1/route": {
+      "get": {
+        "tags": [
+          "geo"
+        ],
+        "summary": "Shortest driving path (Dijkstra) to a point or station",
+        "operationId": "route_api_v1_route_get",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "description": "Origin latitude.",
+              "examples": [
+                -6.2088
+              ],
+              "title": "Lat"
+            },
+            "description": "Origin latitude."
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "description": "Origin longitude.",
+              "examples": [
+                106.8456
+              ],
+              "title": "Lon"
+            },
+            "description": "Origin longitude."
+          },
+          {
+            "name": "station_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Destination = this station's coordinates.",
+              "title": "Station Id"
+            },
+            "description": "Destination = this station's coordinates."
+          },
+          {
+            "name": "dest_lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 90,
+                  "minimum": -90
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Destination latitude (if no station_id).",
+              "title": "Dest Lat"
+            },
+            "description": "Destination latitude (if no station_id)."
+          },
+          {
+            "name": "dest_lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 180,
+                  "minimum": -180
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Destination longitude (if no station_id).",
+              "title": "Dest Lon"
+            },
+            "description": "Destination longitude (if no station_id)."
+          },
+          {
+            "name": "weight",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(length|travel_time)$",
+              "description": "Minimise 'length' (shortest) or 'travel_time' (fastest).",
+              "default": "length",
+              "title": "Weight"
+            },
+            "description": "Minimise 'length' (shortest) or 'travel_time' (fastest)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Route"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Station not found / no drivable route"
+          },
+          "422": {
+            "description": "Destination not provided"
+          },
+          "503": {
+            "description": "Road graph unavailable (not built yet)"
+          }
+        }
+      }
+    },
+    "/api/v1/route/nearest-station": {
+      "get": {
+        "tags": [
+          "geo"
+        ],
+        "summary": "Nearest charging station reachable by road (Dijkstra) + route to it",
+        "operationId": "nearest_station_api_v1_route_nearest_station_get",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "description": "Origin latitude.",
+              "examples": [
+                -6.2088
+              ],
+              "title": "Lat"
+            },
+            "description": "Origin latitude."
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "description": "Origin longitude.",
+              "examples": [
+                106.8456
+              ],
+              "title": "Lon"
+            },
+            "description": "Origin longitude."
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Source"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional source filter.",
+              "title": "Source"
+            },
+            "description": "Optional source filter."
+          },
+          {
+            "name": "weight",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(length|travel_time)$",
+              "description": "Rank by 'length' (nearest) or 'travel_time' (quickest).",
+              "default": "length",
+              "title": "Weight"
+            },
+            "description": "Rank by 'length' (nearest) or 'travel_time' (quickest)."
+          },
+          {
+            "name": "max_range_km",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "EV remaining range (km). Flags whether the nearest charger is within reach (Route & Battery).",
+              "title": "Max Range Km"
+            },
+            "description": "EV remaining range (km). Flags whether the nearest charger is within reach (Route & Battery)."
+          },
+          {
+            "name": "ev_model_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "EV model id (see /api/v1/ev-models). With current_soc the backend derives the remaining range — overrides max_range_km.",
+              "title": "Ev Model Id"
+            },
+            "description": "EV model id (see /api/v1/ev-models). With current_soc the backend derives the remaining range — overrides max_range_km."
+          },
+          {
+            "name": "current_soc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 100,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Current state of charge (%); required when ev_model_id is given.",
+              "title": "Current Soc"
+            },
+            "description": "Current state of charge (%); required when ev_model_id is given."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NearestStationRoute"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No stations loaded / none reachable by road"
+          },
+          "503": {
+            "description": "Road graph unavailable (not built yet)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ev-models": {
+      "get": {
+        "tags": [
+          "ev-models"
+        ],
+        "summary": "List EV models (catalogue from the Kaggle Indonesia-EV-2026 dataset)",
+        "operationId": "ev_models_api_v1_ev_models_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Case-insensitive search on vehicle name.",
+              "title": "Q"
+            },
+            "description": "Case-insensitive search on vehicle name."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "Page size.",
+              "default": 100,
+              "title": "Limit"
+            },
+            "description": "Page size."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Page offset.",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Page offset."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EVModelList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ev-models/{model_id}": {
+      "get": {
+        "tags": [
+          "ev-models"
+        ],
+        "summary": "Fetch one EV model by id",
+        "operationId": "ev_model_api_v1_ev_models__model_id__get",
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EVModel"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/stats": {
       "get": {
         "tags": [
@@ -676,6 +1093,167 @@
   },
   "components": {
     "schemas": {
+      "EVModel": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "examples": [
+              "wuling-air-ev"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "examples": [
+              "Wuling Air EV"
+            ]
+          },
+          "make": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Make",
+            "examples": [
+              "Wuling"
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model",
+            "examples": [
+              "Air EV"
+            ]
+          },
+          "battery_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Battery Kwh",
+            "description": "Usable battery capacity (kWh).",
+            "examples": [
+              26.7
+            ]
+          },
+          "range_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Range Km",
+            "description": "Manufacturer range (km); the lower bound where a range is given.",
+            "examples": [
+              200.0
+            ]
+          },
+          "price_range": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Range",
+            "examples": [
+              "Rp 214 - 307,5 Juta"
+            ]
+          },
+          "charging_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charging Time",
+            "examples": [
+              "8.5 Jam"
+            ]
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "EVModel"
+      },
+      "EVModelList": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "examples": [
+              60
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "examples": [
+              100
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "examples": [
+              0
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EVModel"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "limit",
+          "offset",
+          "items"
+        ],
+        "title": "EVModelList"
+      },
       "GeoJSONFeatureCollection": {
         "properties": {
           "type": {
@@ -770,6 +1348,188 @@
           "count"
         ],
         "title": "NameCount"
+      },
+      "NearestStationRoute": {
+        "properties": {
+          "station": {
+            "$ref": "#/components/schemas/Station",
+            "description": "The closest reachable station; its distance_km mirrors the road distance."
+          },
+          "route": {
+            "$ref": "#/components/schemas/Route"
+          },
+          "candidates_considered": {
+            "type": "integer",
+            "title": "Candidates Considered",
+            "description": "How many stations were reachable by road and ranked.",
+            "examples": [
+              1142
+            ]
+          },
+          "within_range": {
+            "type": "boolean",
+            "title": "Within Range",
+            "description": "False if the nearest station is beyond the EV's remaining range.",
+            "default": true
+          },
+          "range_used_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Range Used Km",
+            "description": "Remaining range (km) used for the within_range check — either the explicit max_range_km, or derived from ev_model_id + current_soc.",
+            "examples": [
+              85.0
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "station",
+          "route",
+          "candidates_considered"
+        ],
+        "title": "NearestStationRoute",
+        "description": "Nearest charging station reachable by road + the route to it (Epic 2.0)."
+      },
+      "Route": {
+        "properties": {
+          "weight": {
+            "type": "string",
+            "title": "Weight",
+            "description": "Cost minimised: 'length' (metres) or 'travel_time' (seconds).",
+            "examples": [
+              "length"
+            ]
+          },
+          "distance_m": {
+            "type": "number",
+            "title": "Distance M",
+            "description": "Total path length in metres.",
+            "examples": [
+              4230.5
+            ]
+          },
+          "duration_s": {
+            "type": "number",
+            "title": "Duration S",
+            "description": "Estimated drive time in seconds.",
+            "examples": [
+              540.2
+            ]
+          },
+          "origin": {
+            "$ref": "#/components/schemas/RoutePoint"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/RoutePoint"
+          },
+          "node_count": {
+            "type": "integer",
+            "title": "Node Count",
+            "description": "Number of road nodes in the path.",
+            "examples": [
+              87
+            ]
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/RouteGeometry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "weight",
+          "distance_m",
+          "duration_s",
+          "origin",
+          "destination",
+          "node_count",
+          "geometry"
+        ],
+        "title": "Route",
+        "description": "Shortest driving path between two points (Dijkstra over the road graph)."
+      },
+      "RouteGeometry": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "LineString",
+            "examples": [
+              "LineString"
+            ]
+          },
+          "coordinates": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Coordinates",
+            "description": "Ordered [longitude, latitude] pairs (WGS84)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "coordinates"
+        ],
+        "title": "RouteGeometry",
+        "description": "GeoJSON LineString — drop straight into `L.geoJSON()` to draw the path."
+      },
+      "RoutePoint": {
+        "properties": {
+          "lat": {
+            "type": "number",
+            "title": "Lat",
+            "examples": [
+              -6.2088
+            ]
+          },
+          "lon": {
+            "type": "number",
+            "title": "Lon",
+            "examples": [
+              106.8456
+            ]
+          },
+          "snapped_node": {
+            "type": "string",
+            "title": "Snapped Node",
+            "description": "Nearest road-graph node the point was snapped to."
+          },
+          "snap_distance_km": {
+            "type": "number",
+            "title": "Snap Distance Km",
+            "description": "Distance from the input point to the snapped node."
+          },
+          "station_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Station Id",
+            "description": "Set on the destination when routing to a station."
+          }
+        },
+        "type": "object",
+        "required": [
+          "lat",
+          "lon",
+          "snapped_node",
+          "snap_distance_km"
+        ],
+        "title": "RoutePoint"
       },
       "Source": {
         "type": "string",
@@ -1139,6 +1899,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -1163,6 +1930,10 @@
     {
       "name": "meta",
       "description": "Stats and filter look-ups (sources, provinces, cities)."
+    },
+    {
+      "name": "ev-models",
+      "description": "EV model catalogue (battery / range) for range-aware routing."
     },
     {
       "name": "system",

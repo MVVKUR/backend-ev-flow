@@ -29,6 +29,9 @@ python -m api.export_openapi
 | GET | `/api/v1/stations/nearby` | Nearest stations to `lat`/`lon` within `radius_km` ("near me") |
 | GET | `/api/v1/stations/{id}` | One station by id |
 | GET | `/api/v1/stations.geojson` | Same filters → GeoJSON FeatureCollection (Leaflet/Mapbox) |
+| GET | `/api/v1/route` | Shortest driving path (Dijkstra) to a `station_id` or `dest_lat`/`dest_lon` → GeoJSON `LineString` + distance/duration |
+| GET | `/api/v1/route/nearest-station` | Nearest charger reachable by road + route; `ev_model_id`+`current_soc` (or `max_range_km`) flags battery reachability |
+| GET | `/api/v1/ev-models` | EV model catalogue (battery/range) from Kaggle dataset; `/{id}` for one |
 | GET | `/api/v1/stats` | Totals, by-source, by-province, by-charge-type, power summary |
 | GET | `/api/v1/sources` | Sources with counts |
 | GET | `/api/v1/provinces` | Provinces with counts (filter dropdown) |
@@ -58,6 +61,29 @@ L.geoJSON(geo).addTo(map);
 const near = await (await fetch(
   "http://localhost:8000/api/v1/stations/nearby?lat=-6.2088&lon=106.8456&radius_km=3&limit=20"
 )).json();
+
+// Shortest driving route to a station, then draw it
+const route = await (await fetch(
+  "http://localhost:8000/api/v1/route?lat=-6.2088&lon=106.8456&station_id=pln_spklu-1"
+)).json();
+L.geoJSON(route.geometry).addTo(map);   // distance_m / duration_s in the body
+```
+
+> **Frontend / map team:** see **[FRONTEND_API.md](FRONTEND_API.md)** for the full
+> map-integration contract (conventions, every endpoint, field-coverage caveats).
+
+## Routing (`/api/v1/route`)
+Dijkstra over the Jakarta drivable road network. The graph is built **once** and cached as
+GraphML; the API then loads it with NetworkX (no OSMnx needed at runtime):
+```bash
+python scripts/build_road_graph.py          # writes data/processed/jakarta_drive.graphml
+```
+Until the graph is built, `/api/v1/route` returns **503**; all other endpoints work normally.
+Pass `weight=travel_time` for fastest-route instead of shortest-distance.
+
+## Tests
+```bash
+pytest -q          # unit tests for the Dijkstra core + /route endpoint (synthetic graph)
 ```
 
 ## Notes
@@ -71,7 +97,12 @@ api/
   __init__.py        # version
   models.py          # Pydantic schemas → drive the OpenAPI spec
   data.py            # load + normalise PLN/OCM/OSM into one DataFrame
+  routing.py         # Dijkstra shortest-path over the road graph (/route)
   main.py            # FastAPI app + endpoints
   export_openapi.py  # dump openapi.json / openapi.yaml
-openapi.json / .yaml # exported spec
+scripts/
+  build_road_graph.py  # one-off: build & cache the routing GraphML (OSMnx)
+tests/                 # pytest suite (Dijkstra core + /route endpoint)
+openapi.json / .yaml   # exported spec
+FRONTEND_API.md        # map-integration contract for the frontend team
 ```
