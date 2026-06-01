@@ -1,0 +1,53 @@
+# EV-FLOW backend — public deployment with Podman.
+#
+#   cp .env.deploy.example .env      # set DOMAIN + CORS_ALLOW_ORIGINS
+#   podman-compose up -d --build
+#
+# Frontend then hits:  https://<DOMAIN>/api/v1/...   (Swagger at /docs)
+# See DEPLOY.md for the full runbook.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: ev-flow-api:latest
+    restart: unless-stopped
+    environment:
+      WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
+      CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
+      RAW_DIR: "/app/data/raw"
+      ROAD_GRAPH_PATH: "/app/data/processed/jakarta_drive.graphml"
+    volumes:
+      # Provide station data + (optional) routing graph on the host. Read-only; :Z relabels
+      # for SELinux hosts (Fedora/RHEL) and is harmless elsewhere.
+      - ./data:/app/data:ro,Z
+    expose:
+      - "8000"          # internal only; Caddy publishes it. (Uncomment ports: below to expose directly.)
+    # ports:
+    #   - "8000:8000"   # direct HTTP access for quick testing without the proxy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u,sys; sys.exit(0 if u.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      DOMAIN: "${DOMAIN:-}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro,Z
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

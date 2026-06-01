@@ -1,0 +1,12 @@
+# Slim RUNTIME dependencies for the FastAPI API container (no analysis/geo stack).
+# The notebook's heavy deps (geopandas, osmnx, matplotlib, jupyter, kaggle, …) live in
+# requirements.txt and are NOT needed to serve the API. osmnx is only needed offline to
+# *build* the road graph (scripts/build_road_graph.py); at runtime networkx reads the
+# cached GraphML.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pandas>=2.1
+numpy>=1.26
+pyyaml>=6.0
+networkx>=3.0

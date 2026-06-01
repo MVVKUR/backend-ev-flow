@@ -1,0 +1,24 @@
+# Keep the build context small + the image clean.
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+# data is mounted at runtime, never baked in
+data/
+output/
+# analysis + scraped artifacts not needed to serve the API
+*.ipynb
+.ipynb_checkpoints/
+js_*.js
+*.html
+*.pdf
+*.png
+ev_charging_jakarta_analysis*.ipynb
+# local env / docs
+.env
+*.md
+.claude/
+scripts/

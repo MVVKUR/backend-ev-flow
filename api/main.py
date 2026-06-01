@@ -7,6 +7,7 @@ Spec: http://localhost:8000/openapi.json
 from __future__ import annotations
 
 import math
+import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -58,10 +59,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Frontend will call this from a browser — allow CORS. Tighten origins for production.
+# Frontend calls this from a browser — allow CORS. Restrict origins for production via
+# CORS_ALLOW_ORIGINS (comma-separated list); defaults to "*" (open — fine for read-only public
+# data, lock it down once auth/write endpoints are added).
+_origins_env = os.getenv("CORS_ALLOW_ORIGINS", "*").strip()
+_allow_origins = ["*"] if _origins_env in ("", "*") else [o.strip() for o in _origins_env.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allow_origins,
     allow_methods=["GET"],
     allow_headers=["*"],
 )
@@ -124,9 +129,9 @@ def _apply_filters(
     if province:
         out = out[out["province"].fillna("").str.casefold() == province.casefold()]
     if city:
-        out = out[out["city"].fillna("").str.contains(city, case=False, na=False)]
+        out = out[out["city"].fillna("").str.contains(city, case=False, na=False, regex=False)]
     if q:
-        out = out[out["name"].fillna("").str.contains(q, case=False, na=False)]
+        out = out[out["name"].fillna("").str.contains(q, case=False, na=False, regex=False)]
     if min_power is not None:
         out = out[out["power_kw"] >= min_power]
     if max_power is not None:

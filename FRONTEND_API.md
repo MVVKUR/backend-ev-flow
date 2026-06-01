@@ -15,9 +15,10 @@ actually exists.
 | Env | Base URL |
 |-----|----------|
 | Local dev | `http://localhost:8000` |
-| Staging | `https://<your-staging-host>` _(TBD — backend will provide)_ |
+| Production | `https://<DOMAIN>` — set when deployed (Podman + Caddy, see [DEPLOY.md](DEPLOY.md)) |
 
 All resource paths are versioned under **`/api/v1`** (except `/health`). Pin to `v1`.
+Interactive contract is live at `<base>/docs` (Swagger) and `<base>/openapi.json`.
 
 ```js
 const API = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
