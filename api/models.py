@@ -16,7 +16,10 @@ class Source(str, Enum):
 class Station(BaseModel):
     id: str = Field(..., description="Stable unique id, '<source>-<n>'.", examples=["pln_spklu-1"])
     name: Optional[str] = Field(None, examples=["SPKLU PLN UID JAKARTA RAYA"])
-    source: Source = Field(..., description="Originating dataset.")
+    sources: list[Source] = Field(
+        default_factory=list,
+        description="Datasets this station appears in (deduplicated).",
+        examples=[["pln_spklu", "open_charge_map"]])
     latitude: float = Field(..., ge=-90, le=90, examples=[-6.18039])
     longitude: float = Field(..., ge=-180, le=180, examples=[106.833191])
     address: Optional[str] = Field(None, examples=["Jl. M.I. Ridwan Rais No.1, Gambir"])
