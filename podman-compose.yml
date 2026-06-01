@@ -1,10 +1,16 @@
-# EV-FLOW backend — public deployment with Podman.
+# EV-FLOW backend: Podman deployment (host networking, LXC/OpenVZ-friendly).
 #
-#   cp .env.deploy.example .env      # set DOMAIN + CORS_ALLOW_ORIGINS
-#   podman-compose up -d --build
+#   cp .env.deploy.example .env      # optional: CORS_ALLOW_ORIGINS, WEB_CONCURRENCY
+#   podman compose up -d --build
+#   podman compose ps
 #
-# Frontend then hits:  https://<DOMAIN>/api/v1/...   (Swagger at /docs)
-# See DEPLOY.md for the full runbook.
+# The API binds 0.0.0.0:8000 on the host. Put HTTPS in front with a Cloudflare Tunnel
+# pointing at http://localhost:8000 (see DEPLOY.md). The frontend then hits
+# https://<your-domain>/api/v1/...
+#
+# Why network_mode: host? Container-type VPSes (LXC/OpenVZ) block the iptables NAT that
+# Podman's default bridge network needs, so `compose up` fails with an ip_tables error.
+# Host mode skips the bridge entirely and works on both LXC and normal VMs.
 
 services:
   api:
@@ -12,42 +18,13 @@ services:
       context: .
       dockerfile: Containerfile
     image: ev-flow-api:latest
+    container_name: ev-flow-api
     restart: unless-stopped
+    network_mode: host
     environment:
       WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
       CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
-      RAW_DIR: "/app/data/raw"
-      ROAD_GRAPH_PATH: "/app/data/processed/jakarta_drive.graphml"
     volumes:
-      # Provide station data + (optional) routing graph on the host. Read-only; :Z relabels
-      # for SELinux hosts (Fedora/RHEL) and is harmless elsewhere.
+      # Station data (+ optional routing graph) live on the host, mounted read-only.
+      # :Z relabels for SELinux hosts (Fedora/RHEL) and is harmless elsewhere.
       - ./data:/app/data:ro,Z
-    expose:
-      - "8000"          # internal only; Caddy publishes it. (Uncomment ports: below to expose directly.)
-    # ports:
-    #   - "8000:8000"   # direct HTTP access for quick testing without the proxy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request as u,sys; sys.exit(0 if u.urlopen('http://localhost:8000/health').status==200 else 1)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-
-  caddy:
-    image: docker.io/library/caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - api
-    environment:
-      DOMAIN: "${DOMAIN:-}"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro,Z
-      - caddy_data:/data
-      - caddy_config:/config
-
-volumes:
-  caddy_data:
-  caddy_config:

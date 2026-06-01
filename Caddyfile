@@ -1,8 +1,0 @@
-# Reverse proxy in front of the API.
-# - DOMAIN unset            -> serves plain HTTP on :80 (use for IP-only / quick test)
-# - DOMAIN=api.example.com  -> Caddy auto-provisions a Let's Encrypt HTTPS cert
-{$DOMAIN::80} {
-	encode gzip
-	reverse_proxy api:8000
-	header -Server
-}

@@ -15,7 +15,7 @@ actually exists.
 | Env | Base URL |
 |-----|----------|
 | Local dev | `http://localhost:8000` |
-| Production | `https://<DOMAIN>` — set when deployed (Podman + Caddy, see [DEPLOY.md](DEPLOY.md)) |
+| Production | `https://<your-domain>` once deployed via Podman + Cloudflare Tunnel (see [DEPLOY.md](DEPLOY.md)) |
 
 All resource paths are versioned under **`/api/v1`** (except `/health`). Pin to `v1`.
 Interactive contract is live at `<base>/docs` (Swagger) and `<base>/openapi.json`.
