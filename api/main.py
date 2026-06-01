@@ -24,13 +24,6 @@ from .models import (
     StationList, Stats,
 )
 
-DESCRIPTION = """
-Charging-station data for Jakarta and the rest of Indonesia. It combines the official PLN
-SPKLU registry (petaspklu.id) with Open Charge Map and OpenStreetMap.
-
-Use it to list and filter stations, find what's nearby, get GeoJSON for the map, plan a
-route to a charger, and read summary stats.
-"""
 
 TAGS = [
     {"name": "stations", "description": "Query and fetch charging stations."},
@@ -48,7 +41,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Jakarta EV Charging Stations API",
-    description=DESCRIPTION,
     version=__version__,
     openapi_tags=TAGS,
     contact={"name": "EV-FLOW", "email": "softopen24@gmail.com"},
