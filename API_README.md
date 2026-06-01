@@ -36,13 +36,21 @@ python -m api.export_openapi
 | GET | `/api/v1/sources` | Sources with counts |
 | GET | `/api/v1/provinces` | Provinces with counts (filter dropdown) |
 | GET | `/api/v1/cities?province=` | Cities with counts |
+| GET | `/api/v1/connectors` | Connector types with counts (inferred) — AC 1.2.1 filter |
+| GET | `/api/v1/speed-tiers` | Speed-tier definitions with counts — AC 1.2.1 filter |
 
 ### Filter params (on `/stations` and `/stations.geojson`)
 - `source` = `pln_spklu` | `open_charge_map` | `osm`
 - `province` exact (case-insensitive), `city` substring, `q` name search
 - `min_power`, `max_power` (kW)
+- `connector_type` = `CCS2` | `AC Type 2` (inferred; see `/connectors`)
+- `speed_tier` = `slow` | `medium` | `fast` | `ultra_fast` (see `/speed-tiers`)
 - `bbox` = `minLon,minLat,maxLon,maxLat` (Jakarta: `106.55,-6.65,107.10,-5.95`)
 - `limit` / `offset`
+
+> `connector_type` is **inferred** from power (Indonesia = Type 2 AC / CCS2 DC); stations carry
+> `connector_inferred: true`. Real values can later come from the Google Places API behind the
+> same field. `speed_tier` is derived from `power_kw`.
 
 ## Frontend examples
 
@@ -97,6 +105,7 @@ api/
   __init__.py        # version
   models.py          # Pydantic schemas → drive the OpenAPI spec
   data.py            # load + normalise PLN/OCM/OSM into one DataFrame
+  connectors.py      # infer connector type + speed tier from power (AC 1.2.1)
   routing.py         # Dijkstra shortest-path over the road graph (/route)
   main.py            # FastAPI app + endpoints
   export_openapi.py  # dump openapi.json / openapi.yaml

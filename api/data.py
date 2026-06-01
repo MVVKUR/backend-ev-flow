@@ -151,6 +151,13 @@ def load() -> pd.DataFrame:
     df = df.dropna(subset=["latitude", "longitude"]).reset_index(drop=True)
     # normalise NaN power to None-friendly; keep numeric column for filtering
     df["power_kw"] = pd.to_numeric(df["power_kw"], errors="coerce")
+    # derive connector type (inferred) + speed tier from power/charge_type (AC 1.2.1)
+    from . import connectors as _conn
+    powers = [(float(p) if pd.notna(p) else None) for p in df["power_kw"]]
+    charges = [(c if pd.notna(c) else None) for c in df["charge_type"]]
+    df["speed_tier"] = [_conn.speed_tier(p, c) for p, c in zip(powers, charges)]
+    df["connector_types"] = [_conn.infer_connectors(p, c) for p, c in zip(powers, charges)]
+    df["connector_inferred"] = True
     _DF = df
     return _DF
 

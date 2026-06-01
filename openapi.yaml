@@ -107,6 +107,30 @@ paths:
           description: Max power (kW).
           title: Max Power
         description: Max power (kW).
+      - name: connector_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Connector standard, e.g. 'CCS2' or 'AC Type 2' (see /api/v1/connectors).
+            Currently inferred.
+          examples:
+          - CCS2
+          title: Connector Type
+        description: Connector standard, e.g. 'CCS2' or 'AC Type 2' (see /api/v1/connectors).
+          Currently inferred.
+      - name: speed_tier
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: 'Speed tier: slow / medium / fast / ultra_fast (see /api/v1/speed-tiers).'
+          title: Speed Tier
+        description: 'Speed tier: slow / medium / fast / ultra_fast (see /api/v1/speed-tiers).'
       - name: bbox
         in: query
         required: false
@@ -317,6 +341,24 @@ paths:
             minimum: 0
           - type: 'null'
           title: Max Power
+      - name: connector_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          examples:
+          - CCS2
+          title: Connector Type
+      - name: speed_tier
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Speed Tier
       - name: bbox
         in: query
         required: false
@@ -699,6 +741,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/connectors:
+    get:
+      tags:
+      - meta
+      summary: Connector types with counts (inferred) — filter dropdown (AC 1.2.1)
+      operationId: connectors_lookup_api_v1_connectors_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/NameCount'
+                type: array
+                title: Response Connectors Lookup Api V1 Connectors Get
+  /api/v1/speed-tiers:
+    get:
+      tags:
+      - meta
+      summary: Speed tier definitions with counts (AC 1.2.1)
+      operationId: speed_tiers_lookup_api_v1_speed_tiers_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/SpeedTier'
+                type: array
+                title: Response Speed Tiers Lookup Api V1 Speed Tiers Get
 components:
   schemas:
     EVModel:
@@ -1018,6 +1092,46 @@ components:
       - source
       - count
       title: SourceCount
+    SpeedTier:
+      properties:
+        id:
+          type: string
+          title: Id
+          examples:
+          - fast
+        label:
+          type: string
+          title: Label
+          examples:
+          - Fast
+        min_kw:
+          type: number
+          title: Min Kw
+          description: Lower power bound (kW), inclusive.
+          examples:
+          - 50.0
+        max_kw:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Max Kw
+          description: Upper power bound (kW); null for ultra_fast.
+          examples:
+          - 150.0
+        count:
+          type: integer
+          title: Count
+          description: Stations in this tier.
+          examples:
+          - 789
+      type: object
+      required:
+      - id
+      - label
+      - min_kw
+      - count
+      title: SpeedTier
+      description: One charging-speed bucket with its power range + station count.
     Station:
       properties:
         id:
@@ -1094,6 +1208,14 @@ components:
           description: slow / medium / fast where known.
           examples:
           - medium
+        speed_tier:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Speed Tier
+          description: 'Speed bucket from power: slow / medium / fast / ultra_fast.'
+          examples:
+          - medium
         connectors:
           anyOf:
           - type: integer
@@ -1102,6 +1224,24 @@ components:
           description: Number of connectors/points.
           examples:
           - 2
+        connector_types:
+          items:
+            type: string
+          type: array
+          title: Connector Types
+          description: Connector standards present, e.g. ['CCS2'] or ['AC Type 2'].
+            Currently inferred.
+          examples:
+          - - AC Type 2
+        connector_inferred:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Connector Inferred
+          description: True when connector_types are inferred from power, not from
+            source data.
+          examples:
+          - true
         status:
           anyOf:
           - type: string

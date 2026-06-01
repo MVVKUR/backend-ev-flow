@@ -16,9 +16,11 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__, data, evmodels
+from . import connectors as conn
 from .models import (
     EVModel, EVModelList, GeoJSONFeatureCollection, Health, NameCount,
-    NearestStationRoute, Route, Source, SourceCount, Station, StationList, Stats,
+    NearestStationRoute, Route, Source, SourceCount, SpeedTier, Station,
+    StationList, Stats,
 )
 
 DESCRIPTION = """
@@ -90,7 +92,10 @@ def _row_to_station(row: pd.Series, distance_km: Optional[float] = None) -> Stat
         operator=_clean(row["operator"]),
         power_kw=_clean(row["power_kw"]),
         charge_type=_clean(row["charge_type"]),
+        speed_tier=(row["speed_tier"] if "speed_tier" in row and _clean(row["speed_tier"]) else None),
         connectors=(int(row["connectors"]) if pd.notna(row["connectors"]) else None),
+        connector_types=(list(row["connector_types"]) if "connector_types" in row and row["connector_types"] is not None else []),
+        connector_inferred=(bool(row["connector_inferred"]) if "connector_inferred" in row else None),
         status=_clean(row["status"]),
         date_verified=_clean(row["date_verified"]),
         distance_km=(round(distance_km, 3) if distance_km is not None else None),
@@ -106,10 +111,16 @@ def _apply_filters(
     min_power: Optional[float],
     max_power: Optional[float],
     bbox: Optional[str],
+    connector_type: Optional[str] = None,
+    speed_tier: Optional[str] = None,
 ) -> pd.DataFrame:
     out = df
     if source is not None:
         out = out[out["source"] == source.value]
+    if connector_type:
+        out = out[out["connector_types"].apply(lambda lst: connector_type in (lst or []))]
+    if speed_tier:
+        out = out[out["speed_tier"] == speed_tier]
     if province:
         out = out[out["province"].fillna("").str.casefold() == province.casefold()]
     if city:
@@ -147,12 +158,15 @@ def list_stations(
     q: Optional[str] = Query(None, description="Case-insensitive search on station name."),
     min_power: Optional[float] = Query(None, ge=0, description="Min power (kW)."),
     max_power: Optional[float] = Query(None, ge=0, description="Max power (kW)."),
+    connector_type: Optional[str] = Query(None, description="Connector standard, e.g. 'CCS2' or 'AC Type 2' (see /api/v1/connectors). Currently inferred.", examples=["CCS2"]),
+    speed_tier: Optional[str] = Query(None, description="Speed tier: slow / medium / fast / ultra_fast (see /api/v1/speed-tiers)."),
     bbox: Optional[str] = Query(None, description="Bounding box 'minLon,minLat,maxLon,maxLat'.",
                                 examples=["106.55,-6.65,107.10,-5.95"]),
     limit: int = Query(100, ge=1, le=1000, description="Page size."),
     offset: int = Query(0, ge=0, description="Page offset."),
 ) -> StationList:
-    df = _apply_filters(data.load(), source, province, city, q, min_power, max_power, bbox)
+    df = _apply_filters(data.load(), source, province, city, q, min_power, max_power, bbox,
+                        connector_type=connector_type, speed_tier=speed_tier)
     total = len(df)
     page = df.iloc[offset: offset + limit]
     return StationList(
@@ -200,10 +214,13 @@ def stations_geojson(
     q: Optional[str] = Query(None),
     min_power: Optional[float] = Query(None, ge=0),
     max_power: Optional[float] = Query(None, ge=0),
+    connector_type: Optional[str] = Query(None, examples=["CCS2"]),
+    speed_tier: Optional[str] = Query(None),
     bbox: Optional[str] = Query(None, examples=["106.55,-6.65,107.10,-5.95"]),
     limit: int = Query(5000, ge=1, le=20000),
 ) -> GeoJSONFeatureCollection:
-    df = _apply_filters(data.load(), source, province, city, q, min_power, max_power, bbox).iloc[:limit]
+    df = _apply_filters(data.load(), source, province, city, q, min_power, max_power, bbox,
+                        connector_type=connector_type, speed_tier=speed_tier).iloc[:limit]
     features = []
     for _, r in df.iterrows():
         st = _row_to_station(r)
@@ -371,3 +388,27 @@ def cities(province: Optional[str] = Query(None, description="Restrict to one pr
         df = df[df["province"].fillna("").str.casefold() == province.casefold()]
     vc = df["city"].dropna().value_counts()
     return [NameCount(name=str(n), count=int(c)) for n, c in vc.items()]
+
+
+@app.get("/api/v1/connectors", response_model=list[NameCount], tags=["meta"],
+         summary="Connector types with counts (inferred) — filter dropdown (AC 1.2.1)")
+def connectors_lookup() -> list[NameCount]:
+    df = data.load()
+    counts: dict[str, int] = {}
+    for types in df["connector_types"]:
+        for t in (types or []):
+            counts[t] = counts.get(t, 0) + 1
+    ordered = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+    return [NameCount(name=n, count=c) for n, c in ordered]
+
+
+@app.get("/api/v1/speed-tiers", response_model=list[SpeedTier], tags=["meta"],
+         summary="Speed tier definitions with counts (AC 1.2.1)")
+def speed_tiers_lookup() -> list[SpeedTier]:
+    df = data.load()
+    counts = {str(k): int(v) for k, v in df["speed_tier"].value_counts().items()}
+    return [
+        SpeedTier(id=t["id"], label=t["label"], min_kw=t["min_kw"], max_kw=t["max_kw"],
+                  count=counts.get(t["id"], 0))
+        for t in conn.SPEED_TIERS
+    ]

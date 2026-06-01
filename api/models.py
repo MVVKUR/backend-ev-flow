@@ -25,7 +25,16 @@ class Station(BaseModel):
     operator: Optional[str] = Field(None, examples=["PLN"])
     power_kw: Optional[float] = Field(None, description="Peak power (kW).", examples=[22.0])
     charge_type: Optional[str] = Field(None, description="slow / medium / fast where known.", examples=["medium"])
+    speed_tier: Optional[str] = Field(
+        None, description="Speed bucket from power: slow / medium / fast / ultra_fast.", examples=["medium"])
     connectors: Optional[int] = Field(None, description="Number of connectors/points.", examples=[2])
+    connector_types: list[str] = Field(
+        default_factory=list,
+        description="Connector standards present, e.g. ['CCS2'] or ['AC Type 2']. Currently inferred.",
+        examples=[["AC Type 2"]])
+    connector_inferred: Optional[bool] = Field(
+        None, description="True when connector_types are inferred from power, not from source data.",
+        examples=[True])
     status: Optional[str] = Field(None, description="Operational status if reported.", examples=["operational"])
     date_verified: Optional[str] = Field(None, description="ISO timestamp last verified (OCM).")
     distance_km: Optional[float] = Field(None, description="Set only on /nearby results.", examples=[1.42])
@@ -46,6 +55,15 @@ class SourceCount(BaseModel):
 class NameCount(BaseModel):
     name: str = Field(..., examples=["DKI Jakarta"])
     count: int = Field(..., examples=[731])
+
+
+class SpeedTier(BaseModel):
+    """One charging-speed bucket with its power range + station count."""
+    id: str = Field(..., examples=["fast"])
+    label: str = Field(..., examples=["Fast"])
+    min_kw: float = Field(..., description="Lower power bound (kW), inclusive.", examples=[50.0])
+    max_kw: Optional[float] = Field(None, description="Upper power bound (kW); null for ultra_fast.", examples=[150.0])
+    count: int = Field(..., description="Stations in this tier.", examples=[789])
 
 
 class Stats(BaseModel):

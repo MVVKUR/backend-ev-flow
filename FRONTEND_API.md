@@ -125,17 +125,30 @@ Same filters as the GeoJSON endpoint, plus `limit` (default 100, max 1000) and `
 | `GET /api/v1/sources` | `[{source, count}]` | Source toggles (PLN / OCM / OSM) |
 | `GET /api/v1/provinces` | `[{name, count}]` | Province dropdown |
 | `GET /api/v1/cities?province=` | `[{name, count}]` | City dropdown (cascades from province) |
+| `GET /api/v1/connectors` | `[{name, count}]` | **Connector-type chips** (CCS2 / AC Type 2 …) — AC 1.2.1 |
+| `GET /api/v1/speed-tiers` | `[{id, label, min_kw, max_kw, count}]` | **Speed-tier filter** (slow/medium/fast/ultra_fast) |
 | `GET /api/v1/stats` | totals + breakdowns | Landing-page summary chips |
 
 ```json
 // GET /api/v1/sources
-[ { "source": "pln_spklu", "count": 1142 },
-  { "source": "open_charge_map", "count": 527 },
-  { "source": "osm", "count": 13 } ]
+[ { "source": "pln_spklu", "count": 1142 }, { "source": "open_charge_map", "count": 527 }, { "source": "osm", "count": 13 } ]
+
+// GET /api/v1/connectors  (counts are over inferred connector types — see §5)
+[ { "name": "CCS2", "count": 1320 }, { "name": "AC Type 2", "count": 980 } ]
+
+// GET /api/v1/speed-tiers
+[ { "id": "slow", "label": "Slow", "min_kw": 0, "max_kw": 7, "count": 210 },
+  { "id": "ultra_fast", "label": "Ultra-fast", "min_kw": 150, "max_kw": null, "count": 240 } ]
 ```
 
-> Connector-type and speed-tier filters (AC 1.2.1) are **coming** — see §6. Don't hard-wire
-> a connector filter into the UI yet; build it as optional.
+**Filtering by them** — `connector_type` and `speed_tier` work on both `/stations` and
+`/stations.geojson`:
+```js
+// only CCS2 ultra-fast chargers in the viewport
+`${API}/api/v1/stations.geojson?connector_type=CCS2&speed_tier=ultra_fast&bbox=...`
+```
+⚠️ `connector_type` is **inferred** (see §5) — stations carry `connector_inferred: true`. It's
+the station's *primary* connector, so don't treat a missing type as "definitely no CCS2".
 
 ### 4.6 `GET /api/v1/route` — shortest driving path (Dijkstra) ⭐ _(Epic 2.0)_
 Computes a road route from an origin to either a **station** or an arbitrary point, and
@@ -245,12 +258,13 @@ Not every field is populated. Coverage by source (from our data analysis):
 |---|---|---|
 | `latitude` / `longitude` | ✅ All sources | Always present |
 | `power_kw` | ✅ Good | Safe |
-| `charge_type` (slow/medium/fast/ultrafast) | ✅ PLN solid | **Best filter to expose** |
+| `speed_tier` (slow/medium/fast/ultra_fast) | ✅ Derived from `power_kw` | **Best filter to expose** |
+| `charge_type` (slow/medium/fast/ultrafast) | ✅ PLN solid | Raw PLN label (use `speed_tier` for filtering) |
 | `operator` | ✅ PLN, ⚠️ OCM sparse | Fallback `"Unknown"` |
 | `address` | ✅ PLN, ❌ OCM/OSM sparse | OCM → show `"{city}, {province}"`; OSM → coords only |
 | `province` / `city` | ✅ PLN & OCM | OSM often null |
 | `connectors` (count) | ⚠️ Often 0 / null | Show only when > 0 |
-| **connector type (CCS2/CHAdeMO/…)** | ❌ Not in the schema yet, source data sparse | **Don't filter stations out by it** |
+| `connector_types` (CCS2 / AC Type 2) | ⚠️ **Inferred** from power (`connector_inferred: true`) | Filterable, but label as "estimated"; don't use it to *hide* stations |
 | `status` | ⚠️ Inconsistent across sources | Don't hard-filter on it |
 | `date_verified` | OCM only | Optional badge |
 
@@ -261,11 +275,12 @@ Per-source row counts (Jabodetabek): **PLN 1142, OCM 527, OSM 13**.
 | Capability | Status |
 |---|---|
 | Station discovery + GeoJSON + nearby + filters | ✅ Available now |
+| Connector-type + speed-tier filters & lookups (AC 1.2.1) | ✅ Available (connector inferred; `/connectors`, `/speed-tiers`) |
 | `GET /api/v1/route` (Dijkstra shortest path) | ✅ Available (needs graph built once) |
 | `GET /api/v1/route/nearest-station` (closest charger + battery range) | ✅ Available (needs graph + station data) |
 | `GET /api/v1/ev-models` (catalogue for the vehicle picker) | ✅ Available |
-| `GET /api/v1/connectors`, `/speed-tiers` (filter lookups, AC 1.2.1) | 🔜 Planned |
-| Structured `connectors: [{type, count, power_kw}]` on stations | 🔜 Planned (ETL work) |
+| `GET /api/v1/connectors`, `/speed-tiers` (filter lookups, AC 1.2.1) | ✅ Available |
+| Real (non-inferred) connector types + counts via Google Places API | 🔜 Planned (swaps in behind same fields) |
 | Tariff & payment endpoints (Epic 6.0) | 🔜 Later iteration |
 | Demand heatmap / B2B (Epic 4.0/5.0) | ⏸ Deferred (Iteration 3) |
 
