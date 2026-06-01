@@ -17,6 +17,12 @@ RUN pip install --no-cache-dir -r requirements-api.txt
 COPY api/ ./api/
 COPY ev_dataset.zip ./
 
+# Alembic migrations and seed script (needed for `alembic upgrade head` and `python -m scripts.seed_db`).
+# data/raw is mounted at runtime, not baked in.
+COPY alembic/ ./alembic/
+COPY alembic.ini ./
+COPY scripts/ ./scripts/
+
 # Run as a non-root user.
 RUN useradd -m -u 10001 appuser && chown -R appuser:appuser /app
 USER appuser

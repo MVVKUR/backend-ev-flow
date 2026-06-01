@@ -2,11 +2,6 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Jakarta EV Charging Stations API",
-    "description": "\nCharging-station data for Jakarta and the rest of Indonesia. It combines the official PLN\nSPKLU registry (petaspklu.id) with Open Charge Map and OpenStreetMap.\n\nUse it to list and filter stations, find what's nearby, get GeoJSON for the map, plan a\nroute to a charger, and read summary stats.\n",
-    "contact": {
-      "name": "EV-FLOW",
-      "email": "softopen24@gmail.com"
-    },
     "license": {
       "name": "Data: PLN, OCM (CC-BY-SA), OSM (ODbL)"
     },
@@ -280,13 +275,8 @@
               "type": "number",
               "maximum": 90,
               "minimum": -90,
-              "description": "Origin latitude.",
-              "examples": [
-                -6.2088
-              ],
               "title": "Lat"
-            },
-            "description": "Origin latitude."
+            }
           },
           {
             "name": "lon",
@@ -296,13 +286,8 @@
               "type": "number",
               "maximum": 180,
               "minimum": -180,
-              "description": "Origin longitude.",
-              "examples": [
-                106.8456
-              ],
               "title": "Lon"
-            },
-            "description": "Origin longitude."
+            }
           },
           {
             "name": "radius_km",
@@ -312,11 +297,9 @@
               "type": "number",
               "maximum": 500,
               "exclusiveMinimum": 0,
-              "description": "Search radius (km).",
               "default": 5.0,
               "title": "Radius Km"
-            },
-            "description": "Search radius (km)."
+            }
           },
           {
             "name": "limit",
@@ -326,11 +309,9 @@
               "type": "integer",
               "maximum": 200,
               "minimum": 1,
-              "description": "Max results, sorted by distance.",
               "default": 20,
               "title": "Limit"
-            },
-            "description": "Max results, sorted by distance."
+            }
           },
           {
             "name": "source",
@@ -345,10 +326,8 @@
                   "type": "null"
                 }
               ],
-              "description": "Optional source filter.",
               "title": "Source"
-            },
-            "description": "Optional source filter."
+            }
           }
         ],
         "responses": {
@@ -577,9 +556,6 @@
                 {
                   "type": "null"
                 }
-              ],
-              "examples": [
-                "106.55,-6.65,107.10,-5.95"
               ],
               "title": "Bbox"
             }
@@ -1064,8 +1040,8 @@
         "tags": [
           "meta"
         ],
-        "summary": "Sources with counts",
-        "operationId": "sources_api_v1_sources_get",
+        "summary": "Sources Lookup",
+        "operationId": "sources_lookup_api_v1_sources_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1076,7 +1052,7 @@
                     "$ref": "#/components/schemas/SourceCount"
                   },
                   "type": "array",
-                  "title": "Response Sources Api V1 Sources Get"
+                  "title": "Response Sources Lookup Api V1 Sources Get"
                 }
               }
             }
@@ -1089,8 +1065,8 @@
         "tags": [
           "meta"
         ],
-        "summary": "Provinces with counts (filter dropdown)",
-        "operationId": "provinces_api_v1_provinces_get",
+        "summary": "Provinces Lookup",
+        "operationId": "provinces_lookup_api_v1_provinces_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1101,7 +1077,7 @@
                     "$ref": "#/components/schemas/NameCount"
                   },
                   "type": "array",
-                  "title": "Response Provinces Api V1 Provinces Get"
+                  "title": "Response Provinces Lookup Api V1 Provinces Get"
                 }
               }
             }
@@ -1114,8 +1090,8 @@
         "tags": [
           "meta"
         ],
-        "summary": "Cities with counts (optionally within a province)",
-        "operationId": "cities_api_v1_cities_get",
+        "summary": "Cities Lookup",
+        "operationId": "cities_lookup_api_v1_cities_get",
         "parameters": [
           {
             "name": "province",
@@ -1130,10 +1106,8 @@
                   "type": "null"
                 }
               ],
-              "description": "Restrict to one province.",
               "title": "Province"
-            },
-            "description": "Restrict to one province."
+            }
           }
         ],
         "responses": {
@@ -1146,7 +1120,7 @@
                   "items": {
                     "$ref": "#/components/schemas/NameCount"
                   },
-                  "title": "Response Cities Api V1 Cities Get"
+                  "title": "Response Cities Lookup Api V1 Cities Get"
                 }
               }
             }
@@ -1194,7 +1168,7 @@
         "tags": [
           "meta"
         ],
-        "summary": "Speed tier definitions with counts (AC 1.2.1)",
+        "summary": "Speed tier definitions with counts",
         "operationId": "speed_tiers_lookup_api_v1_speed_tiers_get",
         "responses": {
           "200": {
@@ -1763,9 +1737,19 @@
               "SPKLU PLN UID JAKARTA RAYA"
             ]
           },
-          "source": {
-            "$ref": "#/components/schemas/Source",
-            "description": "Originating dataset."
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Sources",
+            "description": "Datasets this station appears in (deduplicated).",
+            "examples": [
+              [
+                "pln_spklu",
+                "open_charge_map"
+              ]
+            ]
           },
           "latitude": {
             "type": "number",
@@ -1975,7 +1959,6 @@
         "type": "object",
         "required": [
           "id",
-          "source",
           "latitude",
           "longitude"
         ],

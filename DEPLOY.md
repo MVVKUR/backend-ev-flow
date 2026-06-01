@@ -45,14 +45,18 @@ mkdir -p data/raw data/processed
 # 2. (optional) configure
 cp .env.deploy.example .env        # CORS_ALLOW_ORIGINS, WEB_CONCURRENCY
 
-# 3. Build + run
-podman compose up -d --build
-podman compose ps
+# 3. Build + run, then migrate and seed
+podman compose up -d --build db api
+podman compose exec api alembic upgrade head        # create the schema
+podman compose exec api python -m scripts.seed_db   # load + dedupe stations (~1147)
 
 # 4. Check it locally on the VPS
-curl -s http://localhost:8000/health        # {"status":"ok","stations_loaded":N,...}
+curl -s http://localhost:8000/health        # {"status":"ok","stations_loaded":~1147,...}
 podman logs -f ev-flow-api
 ```
+
+> Security note: port 5432 should remain closed to the public. Only the API is exposed via
+> the Cloudflare Tunnel; Postgres is reachable only on the host (localhost:5432).
 
 > Manage it with `podman compose up -d` / `down` / `ps`, or directly:
 > `podman logs -f ev-flow-api`, `podman restart ev-flow-api`.
@@ -78,8 +82,8 @@ The frontend then uses `https://ev-flow-api.opensoft.id`.
 git pull
 podman compose up -d --build       # rebuilds + restarts
 
-# refresh station data without rebuilding: replace files in data/raw, then
-podman compose restart api         # reloads the in-memory dataset
+# refresh station data: replace files in data/raw, then
+podman compose exec api python -m scripts.seed_db   # re-loads + dedupes into the DB
 ```
 
 ## Keep it running after a reboot

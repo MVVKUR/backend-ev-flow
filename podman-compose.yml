@@ -1,8 +1,9 @@
 # EV-FLOW backend: Podman deployment (host networking, LXC/OpenVZ-friendly).
 #
 #   cp .env.deploy.example .env      # optional: CORS_ALLOW_ORIGINS, WEB_CONCURRENCY
-#   podman compose up -d --build
-#   podman compose ps
+#   podman compose up -d --build db api
+#   podman compose exec api alembic upgrade head
+#   podman compose exec api python -m scripts.seed_db
 #
 # The API binds 0.0.0.0:8000 on the host. Put HTTPS in front with a Cloudflare Tunnel
 # pointing at http://localhost:8000 (see DEPLOY.md). The frontend then hits
@@ -11,8 +12,21 @@
 # Why network_mode: host? Container-type VPSes (LXC/OpenVZ) block the iptables NAT that
 # Podman's default bridge network needs, so `compose up` fails with an ip_tables error.
 # Host mode skips the bridge entirely and works on both LXC and normal VMs.
+# Both db and api use host networking so the API reaches Postgres on localhost:5432.
 
 services:
+  db:
+    image: docker.io/postgis/postgis:16-3.4
+    container_name: ev-flow-db
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      POSTGRES_USER: evflow
+      POSTGRES_PASSWORD: evflow
+      POSTGRES_DB: evflow
+    volumes:
+      - pgdata:/var/lib/postgresql/data:Z
+
   api:
     build:
       context: .
@@ -24,7 +38,11 @@ services:
     environment:
       WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
       CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
+      DATABASE_URL: "postgresql+psycopg://evflow:evflow@localhost:5432/evflow"
     volumes:
       # Station data (+ optional routing graph) live on the host, mounted read-only.
       # :Z relabels for SELinux hosts (Fedora/RHEL) and is harmless elsewhere.
       - ./data:/app/data:ro,Z
+
+volumes:
+  pgdata:

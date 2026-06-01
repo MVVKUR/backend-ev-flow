@@ -49,7 +49,7 @@ later account/payment endpoints, Epic 6.0.) Just `fetch()` directly from the bro
 ### 4.1 `GET /api/v1/stations.geojson` — primary map layer ⭐
 Drop straight into Leaflet/Mapbox. Call on map load and on pan/zoom with the viewport `bbox`.
 
-Query params: `bbox`, `source`, `province`, `city`, `q`, `min_power`, `max_power`,
+Query params: `bbox`, `source` (filter to stations that include this source), `province`, `city`, `q`, `min_power`, `max_power`,
 `limit` (default 5000, max 20000).
 
 ```js
@@ -70,7 +70,7 @@ Response (RFC 7946 FeatureCollection):
       "properties": {
         "id": "pln_spklu-1",
         "name": "SPKLU PLN UID JAKARTA RAYA",
-        "source": "pln_spklu",
+        "sources": ["pln_spklu"],
         "address": "Jl. M.I. Ridwan Rais No.1, Gambir",
         "province": "DKI Jakarta",
         "city": "Kota ADM Jakarta Pusat",
@@ -91,7 +91,7 @@ Satisfies AC 1.1.1 (default 5 km radius). Results are sorted by distance and eac
 `distance_km`.
 
 Query params: `lat` (req), `lon` (req), `radius_km` (default 5, max 500),
-`limit` (default 20, max 200), `source`.
+`limit` (default 20, max 200), `source` (filter to stations that include this source).
 
 ```js
 const near = await (await fetch(
@@ -257,6 +257,7 @@ Not every field is populated. Coverage by source (from our data analysis):
 
 | Field | Reliability | UI guidance |
 |---|---|---|
+| `sources` (list of contributing datasets, deduplicated) | ✅ All stations | Use for source-toggle filters; a station deduped from multiple datasets carries multiple entries |
 | `latitude` / `longitude` | ✅ All sources | Always present |
 | `power_kw` | ✅ Good | Safe |
 | `speed_tier` (slow/medium/fast/ultra_fast) | ✅ Derived from `power_kw` | **Best filter to expose** |

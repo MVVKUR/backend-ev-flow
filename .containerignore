@@ -21,4 +21,5 @@ ev_charging_jakarta_analysis*.ipynb
 .env
 *.md
 .claude/
-scripts/
+# scripts/ and alembic/ are COPIED into the image (needed for seed_db and migrations).
+# Do NOT exclude them here.

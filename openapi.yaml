@@ -1,23 +1,6 @@
 openapi: 3.1.0
 info:
   title: Jakarta EV Charging Stations API
-  description: '
-
-    Charging-station data for Jakarta and the rest of Indonesia. It combines the official
-    PLN
-
-    SPKLU registry (petaspklu.id) with Open Charge Map and OpenStreetMap.
-
-
-    Use it to list and filter stations, find what''s nearby, get GeoJSON for the map,
-    plan a
-
-    route to a charger, and read summary stats.
-
-    '
-  contact:
-    name: EV-FLOW
-    email: softopen24@gmail.com
   license:
     name: 'Data: PLN, OCM (CC-BY-SA), OSM (ODbL)'
   version: 1.0.0
@@ -188,11 +171,7 @@ paths:
           type: number
           maximum: 90
           minimum: -90
-          description: Origin latitude.
-          examples:
-          - -6.2088
           title: Lat
-        description: Origin latitude.
       - name: lon
         in: query
         required: true
@@ -200,11 +179,7 @@ paths:
           type: number
           maximum: 180
           minimum: -180
-          description: Origin longitude.
-          examples:
-          - 106.8456
           title: Lon
-        description: Origin longitude.
       - name: radius_km
         in: query
         required: false
@@ -212,10 +187,8 @@ paths:
           type: number
           maximum: 500
           exclusiveMinimum: 0
-          description: Search radius (km).
           default: 5.0
           title: Radius Km
-        description: Search radius (km).
       - name: limit
         in: query
         required: false
@@ -223,10 +196,8 @@ paths:
           type: integer
           maximum: 200
           minimum: 1
-          description: Max results, sorted by distance.
           default: 20
           title: Limit
-        description: Max results, sorted by distance.
       - name: source
         in: query
         required: false
@@ -234,9 +205,7 @@ paths:
           anyOf:
           - $ref: '#/components/schemas/Source'
           - type: 'null'
-          description: Optional source filter.
           title: Source
-        description: Optional source filter.
       responses:
         '200':
           description: Successful Response
@@ -363,8 +332,6 @@ paths:
           anyOf:
           - type: string
           - type: 'null'
-          examples:
-          - 106.55,-6.65,107.10,-5.95
           title: Bbox
       - name: limit
         in: query
@@ -677,8 +644,8 @@ paths:
     get:
       tags:
       - meta
-      summary: Sources with counts
-      operationId: sources_api_v1_sources_get
+      summary: Sources Lookup
+      operationId: sources_lookup_api_v1_sources_get
       responses:
         '200':
           description: Successful Response
@@ -688,13 +655,13 @@ paths:
                 items:
                   $ref: '#/components/schemas/SourceCount'
                 type: array
-                title: Response Sources Api V1 Sources Get
+                title: Response Sources Lookup Api V1 Sources Get
   /api/v1/provinces:
     get:
       tags:
       - meta
-      summary: Provinces with counts (filter dropdown)
-      operationId: provinces_api_v1_provinces_get
+      summary: Provinces Lookup
+      operationId: provinces_lookup_api_v1_provinces_get
       responses:
         '200':
           description: Successful Response
@@ -704,13 +671,13 @@ paths:
                 items:
                   $ref: '#/components/schemas/NameCount'
                 type: array
-                title: Response Provinces Api V1 Provinces Get
+                title: Response Provinces Lookup Api V1 Provinces Get
   /api/v1/cities:
     get:
       tags:
       - meta
-      summary: Cities with counts (optionally within a province)
-      operationId: cities_api_v1_cities_get
+      summary: Cities Lookup
+      operationId: cities_lookup_api_v1_cities_get
       parameters:
       - name: province
         in: query
@@ -719,9 +686,7 @@ paths:
           anyOf:
           - type: string
           - type: 'null'
-          description: Restrict to one province.
           title: Province
-        description: Restrict to one province.
       responses:
         '200':
           description: Successful Response
@@ -731,7 +696,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/NameCount'
-                title: Response Cities Api V1 Cities Get
+                title: Response Cities Lookup Api V1 Cities Get
         '422':
           description: Validation Error
           content:
@@ -758,7 +723,7 @@ paths:
     get:
       tags:
       - meta
-      summary: Speed tier definitions with counts (AC 1.2.1)
+      summary: Speed tier definitions with counts
       operationId: speed_tiers_lookup_api_v1_speed_tiers_get
       responses:
         '200':
@@ -1144,9 +1109,15 @@ components:
           title: Name
           examples:
           - SPKLU PLN UID JAKARTA RAYA
-        source:
-          $ref: '#/components/schemas/Source'
-          description: Originating dataset.
+        sources:
+          items:
+            $ref: '#/components/schemas/Source'
+          type: array
+          title: Sources
+          description: Datasets this station appears in (deduplicated).
+          examples:
+          - - pln_spklu
+            - open_charge_map
         latitude:
           type: number
           maximum: 90.0
@@ -1264,7 +1235,6 @@ components:
       type: object
       required:
       - id
-      - source
       - latitude
       - longitude
       title: Station
