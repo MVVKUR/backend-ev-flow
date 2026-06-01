@@ -241,6 +241,8 @@ def nearest_station(
     if result is None:
         raise HTTPException(404, "no charging station reachable by road from this point")
     row = repo.get_station(result["station_id"])
+    if row is None:
+        raise HTTPException(404, "nearest station resolved by routing but not found")
     return NearestStationRoute(
         station=_row_to_station(row, distance_km=result["route"]["distance_m"] / 1000.0),
         route=result["route"], candidates_considered=result["candidates_considered"],
@@ -272,7 +274,7 @@ def stats() -> Stats:
     s = repo.stats()
     by_source = [SourceCount(source=src, count=c) for src, c in repo.source_counts()]
     by_prov = [NameCount(name=n, count=c) for n, c in repo.provinces()[:40]]
-    by_type = [NameCount(name=n, count=c) for n, c in repo.connector_counts()]
+    by_type = [NameCount(name=k, count=v) for k, v in repo.speed_tier_counts().items()]
     return Stats(total=s["total"], by_source=by_source, by_province=by_prov,
                  by_charge_type=by_type, with_power_kw=s["with_power_kw"],
                  power_kw_min=s["power_kw_min"], power_kw_max=s["power_kw_max"],

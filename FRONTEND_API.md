@@ -76,8 +76,10 @@ Response (RFC 7946 FeatureCollection):
         "city": "Kota ADM Jakarta Pusat",
         "operator": "PLN",
         "power_kw": 22.0,
-        "charge_type": "medium",
-        "connectors": 2,
+        "speed_tier": "medium",
+        "connector_types": ["AC Type 2"],
+        "connector_inferred": true,
+        "sources": ["pln_spklu"],
         "status": "operational",
         "date_verified": null
       }
@@ -261,16 +263,16 @@ Not every field is populated. Coverage by source (from our data analysis):
 | `latitude` / `longitude` | ✅ All sources | Always present |
 | `power_kw` | ✅ Good | Safe |
 | `speed_tier` (slow/medium/fast/ultra_fast) | ✅ Derived from `power_kw` | **Best filter to expose** |
-| `charge_type` (slow/medium/fast/ultrafast) | ✅ PLN solid | Raw PLN label (use `speed_tier` for filtering) |
+| `charge_type` | always null from the database (superseded by `speed_tier`) | Use `speed_tier` instead; `charge_type` is no longer populated |
 | `operator` | ✅ PLN, ⚠️ OCM sparse | Fallback `"Unknown"` |
 | `address` | ✅ PLN, ❌ OCM/OSM sparse | OCM → show `"{city}, {province}"`; OSM → coords only |
 | `province` / `city` | ✅ PLN & OCM | OSM often null |
-| `connectors` (count) | ⚠️ Often 0 / null | Show only when > 0 |
+| `connectors` (count) | always null from the database (superseded by `connector_types`) | Use `connector_types` list instead; this count field is no longer populated |
 | `connector_types` (CCS2 / AC Type 2) | ⚠️ **Inferred** from power (`connector_inferred: true`) | Filterable, but label as "estimated"; don't use it to *hide* stations |
 | `status` | ⚠️ Inconsistent across sources | Don't hard-filter on it |
 | `date_verified` | OCM only | Optional badge |
 
-Per-source row counts (Jabodetabek): **PLN 1142, OCM 527, OSM 13**.
+Per-source row counts (Jabodetabek): **PLN 1142, OCM 527, OSM 13**. Note: counts are per included source after deduplication, so a station merged from two sources counts toward both (the per-source counts can sum to more than the total station count).
 
 ## 6. Roadmap (so you can plan UI, not block on it)
 

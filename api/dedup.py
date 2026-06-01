@@ -8,7 +8,6 @@ latitude, longitude, power_kw, connector_types, and the descriptive fields.
 from __future__ import annotations
 
 from math import asin, cos, radians, sin, sqrt
-from typing import Optional
 
 MERGE_RADIUS_M = 75.0
 SOURCE_PRIORITY = {"pln_spklu": 0, "open_charge_map": 1, "osm": 2}

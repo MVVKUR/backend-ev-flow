@@ -35,6 +35,8 @@ def upgrade() -> None:
     op.execute("CREATE INDEX stations_geom_gix ON stations USING GIST (geom);")
     op.execute("CREATE INDEX stations_province_ix ON stations (province);")
     op.execute("CREATE INDEX stations_speed_tier_ix ON stations (speed_tier);")
+    op.execute("CREATE INDEX stations_sources_gin ON stations USING GIN (sources);")
+    op.execute("CREATE INDEX stations_connector_types_gin ON stations USING GIN (connector_types);")
 
 
 def downgrade() -> None:
