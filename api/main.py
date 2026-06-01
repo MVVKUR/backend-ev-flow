@@ -25,14 +25,11 @@ from .models import (
 )
 
 DESCRIPTION = """
-REST API over combined **EV charging-station** data for Jakarta / Indonesia,
-merging three sources:
+Charging-station data for Jakarta and the rest of Indonesia. It combines the official PLN
+SPKLU registry (petaspklu.id) with Open Charge Map and OpenStreetMap.
 
-* **PLN SPKLU** — official national registry (`petaspklu.id`)
-* **Open Charge Map** — crowd-sourced POIs
-* **OpenStreetMap** — `amenity=charging_station`
-
-Built for a map frontend: list/filter, nearby search, GeoJSON output, and stats.
+Use it to list and filter stations, find what's nearby, get GeoJSON for the map, plan a
+route to a charger, and read summary stats.
 """
 
 TAGS = [
@@ -50,17 +47,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="EV Charging Stations API — Jakarta / Indonesia",
+    title="Jakarta EV Charging Stations API",
     description=DESCRIPTION,
     version=__version__,
     openapi_tags=TAGS,
-    contact={"name": "EV Charging Analysis", "email": "softopen24@gmail.com"},
-    license_info={"name": "Data: PLN / OCM (CC-BY-SA) / OSM (ODbL)"},
+    contact={"name": "EV-FLOW", "email": "softopen24@gmail.com"},
+    license_info={"name": "Data: PLN, OCM (CC-BY-SA), OSM (ODbL)"},
     lifespan=lifespan,
 )
 
-# Frontend calls this from a browser — allow CORS. Restrict origins for production via
-# CORS_ALLOW_ORIGINS (comma-separated list); defaults to "*" (open — fine for read-only public
+# Frontend calls this from a browser, so allow CORS. Restrict origins for production via
+# CORS_ALLOW_ORIGINS (comma-separated list); defaults to "*" (open, fine for read-only public
 # data, lock it down once auth/write endpoints are added).
 _origins_env = os.getenv("CORS_ALLOW_ORIGINS", "*").strip()
 _allow_origins = ["*"] if _origins_env in ("", "*") else [o.strip() for o in _origins_env.split(",") if o.strip()]
@@ -287,7 +284,7 @@ def nearest_station(
         description="EV remaining range (km). Flags whether the nearest charger is within reach (Route & Battery)."),
     ev_model_id: Optional[str] = Query(
         None, description="EV model id (see /api/v1/ev-models). With current_soc the backend derives the "
-                          "remaining range — overrides max_range_km."),
+                          "remaining range, overriding max_range_km."),
     current_soc: Optional[float] = Query(
         None, ge=0, le=100, description="Current state of charge (%); required when ev_model_id is given."),
 ) -> NearestStationRoute:
@@ -396,7 +393,7 @@ def cities(province: Optional[str] = Query(None, description="Restrict to one pr
 
 
 @app.get("/api/v1/connectors", response_model=list[NameCount], tags=["meta"],
-         summary="Connector types with counts (inferred) — filter dropdown (AC 1.2.1)")
+         summary="Connector types with counts for the filter dropdown (inferred)")
 def connectors_lookup() -> list[NameCount]:
     df = data.load()
     counts: dict[str, int] = {}

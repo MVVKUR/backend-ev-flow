@@ -1,7 +1,7 @@
 """Shortest-path routing over the Jakarta drivable road network.
 
-EV-FLOW Epic 2.0 (Route & Battery). The road graph is built once with OSMnx —
-offline via ``scripts/build_road_graph.py`` or lazily on first request — and
+EV-FLOW Epic 2.0 (Route & Battery). The road graph is built once with OSMnx
+(offline via ``scripts/build_road_graph.py``, or lazily on first request) and
 cached on disk as GraphML. At request time we load it with NetworkX, snap the
 origin and destination to the nearest road nodes (great-circle), and run our own
 Dijkstra over a plain adjacency map.
@@ -53,7 +53,7 @@ def dijkstra(adj: dict, source, target=None, weight_idx: int = 0):
     ``weight_idx``: 0 minimises ``length_m``, 1 minimises ``travel_time_s``.
 
     Returns ``(dist, prev, edge_used)`` where ``edge_used[v]`` is the
-    ``(length_m, time_s)`` of the chosen incoming edge to ``v`` — so a caller can
+    ``(length_m, time_s)`` of the chosen incoming edge to ``v``, so a caller can
     sum *both* metrics along the reconstructed path regardless of which one was
     minimised.
     """
@@ -100,7 +100,7 @@ _NODES: Optional[dict] = None  # node -> (lat, lon)
 _NODE_IDS = None               # np.ndarray of node ids
 _NODE_LAT = None               # np.ndarray of latitudes
 _NODE_LON = None               # np.ndarray of longitudes
-_STATION_SNAP = None           # (signature, np.ndarray of snapped node ids) — cache
+_STATION_SNAP = None           # (signature, np.ndarray of snapped node ids); cache
 
 
 def _build_adjacency(graph):
@@ -262,8 +262,8 @@ def nearest_station_route(orig_lat: float, orig_lon: float,
 
     Runs a single single-source Dijkstra from the origin (cost to every node), then
     picks the station with the lowest cost. ``max_range_km`` (EV remaining range)
-    does not change the choice — the nearest station is always the best candidate —
-    but flags ``within_range`` when that nearest station's road distance exceeds it.
+    does not change the choice (the nearest station is always the best candidate), but
+    flags ``within_range`` when that nearest station's road distance exceeds it.
     Returns ``None`` if no station is reachable by road.
     """
     from .data import haversine_km

@@ -1,4 +1,4 @@
-"""EV model catalogue (Kaggle Indonesia-EV-2026) — specs for range-aware routing.
+"""EV model catalogue (Kaggle Indonesia-EV-2026): specs for range-aware routing.
 
 Loads make / model / battery / range from the Kaggle dataset (the committed
 ``ev_dataset.zip``, or an extracted CSV). This is the seed of the Epic 6.0 EVModel

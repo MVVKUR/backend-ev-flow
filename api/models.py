@@ -1,4 +1,4 @@
-"""Pydantic response/request models — these drive the OpenAPI (Swagger) schema."""
+"""Pydantic request and response models. These drive the OpenAPI (Swagger) schema."""
 from __future__ import annotations
 
 from enum import Enum
@@ -78,7 +78,7 @@ class Stats(BaseModel):
 
 
 class GeoJSONFeatureCollection(BaseModel):
-    """RFC 7946 FeatureCollection — drop straight into Leaflet/Mapbox."""
+    """RFC 7946 FeatureCollection. Drop straight into Leaflet or Mapbox."""
     type: str = Field("FeatureCollection", examples=["FeatureCollection"])
     features: list[dict[str, Any]]
 
@@ -91,7 +91,7 @@ class Health(BaseModel):
 
 # ---- routing (Epic 2.0: shortest path via Dijkstra) -------------------------
 class RouteGeometry(BaseModel):
-    """GeoJSON LineString — drop straight into `L.geoJSON()` to draw the path."""
+    """GeoJSON LineString. Pass it to L.geoJSON() to draw the path on the map."""
     type: str = Field("LineString", examples=["LineString"])
     coordinates: list[list[float]] = Field(
         ..., description="Ordered [longitude, latitude] pairs (WGS84)."
@@ -126,8 +126,8 @@ class NearestStationRoute(BaseModel):
                                        examples=[1142])
     within_range: bool = Field(True, description="False if the nearest station is beyond the EV's remaining range.")
     range_used_km: Optional[float] = Field(
-        None, description="Remaining range (km) used for the within_range check — either the explicit "
-                          "max_range_km, or derived from ev_model_id + current_soc.", examples=[85.0])
+        None, description="Remaining range (km) used for the within_range check: either the explicit "
+                          "max_range_km, or derived from ev_model_id plus current_soc.", examples=[85.0])
 
 
 # ---- EV model catalogue (Kaggle Indonesia-EV-2026; seed of Epic 6.0) --------

@@ -3,7 +3,7 @@
 Our source data has no reliable connector-standard field (PLN has none, OCM's
 ConnectionType is empty for Indonesia, OSM is sparse). Rather than scrape Google
 Maps (paid API / ToS issues), we **infer** the connector type from data we already
-have — `power_kw` and PLN's `charge_type` — using Indonesia's de-facto standard
+have (`power_kw` and PLN's `charge_type`) using Indonesia's de-facto standard
 that public charging is **Type 2 (AC)** + **CCS2 (DC)**.
 
 This is an educated guess, not ground truth: a multi-connector site is tagged with

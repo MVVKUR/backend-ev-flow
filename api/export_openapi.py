@@ -24,7 +24,7 @@ def main() -> None:
         YAML_PATH.write_text(yaml.safe_dump(spec, sort_keys=False, allow_unicode=True), encoding="utf-8")
         print(f"wrote {YAML_PATH}")
     except ImportError:
-        print("(PyYAML not installed — skipped openapi.yaml; `pip install pyyaml` to enable)")
+        print("(PyYAML not installed: skipped openapi.yaml; `pip install pyyaml` to enable)")
 
 
 if __name__ == "__main__":

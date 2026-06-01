@@ -1,14 +1,14 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "EV Charging Stations API — Jakarta / Indonesia",
-    "description": "\nREST API over combined **EV charging-station** data for Jakarta / Indonesia,\nmerging three sources:\n\n* **PLN SPKLU** — official national registry (`petaspklu.id`)\n* **Open Charge Map** — crowd-sourced POIs\n* **OpenStreetMap** — `amenity=charging_station`\n\nBuilt for a map frontend: list/filter, nearby search, GeoJSON output, and stats.\n",
+    "title": "Jakarta EV Charging Stations API",
+    "description": "\nCharging-station data for Jakarta and the rest of Indonesia. It combines the official PLN\nSPKLU registry (petaspklu.id) with Open Charge Map and OpenStreetMap.\n\nUse it to list and filter stations, find what's nearby, get GeoJSON for the map, plan a\nroute to a charger, and read summary stats.\n",
     "contact": {
-      "name": "EV Charging Analysis",
+      "name": "EV-FLOW",
       "email": "softopen24@gmail.com"
     },
     "license": {
-      "name": "Data: PLN / OCM (CC-BY-SA) / OSM (ODbL)"
+      "name": "Data: PLN, OCM (CC-BY-SA), OSM (ODbL)"
     },
     "version": "1.0.0"
   },
@@ -859,10 +859,10 @@
                   "type": "null"
                 }
               ],
-              "description": "EV model id (see /api/v1/ev-models). With current_soc the backend derives the remaining range — overrides max_range_km.",
+              "description": "EV model id (see /api/v1/ev-models). With current_soc the backend derives the remaining range, overriding max_range_km.",
               "title": "Ev Model Id"
             },
-            "description": "EV model id (see /api/v1/ev-models). With current_soc the backend derives the remaining range — overrides max_range_km."
+            "description": "EV model id (see /api/v1/ev-models). With current_soc the backend derives the remaining range, overriding max_range_km."
           },
           {
             "name": "current_soc",
@@ -1169,7 +1169,7 @@
         "tags": [
           "meta"
         ],
-        "summary": "Connector types with counts (inferred) — filter dropdown (AC 1.2.1)",
+        "summary": "Connector types with counts for the filter dropdown (inferred)",
         "operationId": "connectors_lookup_api_v1_connectors_get",
         "responses": {
           "200": {
@@ -1402,7 +1402,7 @@
           "features"
         ],
         "title": "GeoJSONFeatureCollection",
-        "description": "RFC 7946 FeatureCollection — drop straight into Leaflet/Mapbox."
+        "description": "RFC 7946 FeatureCollection. Drop straight into Leaflet or Mapbox."
       },
       "HTTPValidationError": {
         "properties": {
@@ -1506,7 +1506,7 @@
               }
             ],
             "title": "Range Used Km",
-            "description": "Remaining range (km) used for the within_range check — either the explicit max_range_km, or derived from ev_model_id + current_soc.",
+            "description": "Remaining range (km) used for the within_range check: either the explicit max_range_km, or derived from ev_model_id plus current_soc.",
             "examples": [
               85.0
             ]
@@ -1605,7 +1605,7 @@
           "coordinates"
         ],
         "title": "RouteGeometry",
-        "description": "GeoJSON LineString — drop straight into `L.geoJSON()` to draw the path."
+        "description": "GeoJSON LineString. Pass it to L.geoJSON() to draw the path on the map."
       },
       "RoutePoint": {
         "properties": {

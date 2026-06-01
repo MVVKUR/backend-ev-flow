@@ -1,28 +1,25 @@
 openapi: 3.1.0
 info:
-  title: EV Charging Stations API — Jakarta / Indonesia
+  title: Jakarta EV Charging Stations API
   description: '
 
-    REST API over combined **EV charging-station** data for Jakarta / Indonesia,
+    Charging-station data for Jakarta and the rest of Indonesia. It combines the official
+    PLN
 
-    merging three sources:
-
-
-    * **PLN SPKLU** — official national registry (`petaspklu.id`)
-
-    * **Open Charge Map** — crowd-sourced POIs
-
-    * **OpenStreetMap** — `amenity=charging_station`
+    SPKLU registry (petaspklu.id) with Open Charge Map and OpenStreetMap.
 
 
-    Built for a map frontend: list/filter, nearby search, GeoJSON output, and stats.
+    Use it to list and filter stations, find what''s nearby, get GeoJSON for the map,
+    plan a
+
+    route to a charger, and read summary stats.
 
     '
   contact:
-    name: EV Charging Analysis
+    name: EV-FLOW
     email: softopen24@gmail.com
   license:
-    name: 'Data: PLN / OCM (CC-BY-SA) / OSM (ODbL)'
+    name: 'Data: PLN, OCM (CC-BY-SA), OSM (ODbL)'
   version: 1.0.0
 paths:
   /health:
@@ -551,10 +548,10 @@ paths:
           - type: string
           - type: 'null'
           description: EV model id (see /api/v1/ev-models). With current_soc the backend
-            derives the remaining range — overrides max_range_km.
+            derives the remaining range, overriding max_range_km.
           title: Ev Model Id
         description: EV model id (see /api/v1/ev-models). With current_soc the backend
-          derives the remaining range — overrides max_range_km.
+          derives the remaining range, overriding max_range_km.
       - name: current_soc
         in: query
         required: false
@@ -745,7 +742,7 @@ paths:
     get:
       tags:
       - meta
-      summary: Connector types with counts (inferred) — filter dropdown (AC 1.2.1)
+      summary: Connector types with counts for the filter dropdown (inferred)
       operationId: connectors_lookup_api_v1_connectors_get
       responses:
         '200':
@@ -888,7 +885,7 @@ components:
       required:
       - features
       title: GeoJSONFeatureCollection
-      description: RFC 7946 FeatureCollection — drop straight into Leaflet/Mapbox.
+      description: RFC 7946 FeatureCollection. Drop straight into Leaflet or Mapbox.
     HTTPValidationError:
       properties:
         detail:
@@ -962,8 +959,8 @@ components:
           - type: number
           - type: 'null'
           title: Range Used Km
-          description: Remaining range (km) used for the within_range check — either
-            the explicit max_range_km, or derived from ev_model_id + current_soc.
+          description: 'Remaining range (km) used for the within_range check: either
+            the explicit max_range_km, or derived from ev_model_id plus current_soc.'
           examples:
           - 85.0
       type: object
@@ -1038,8 +1035,8 @@ components:
       required:
       - coordinates
       title: RouteGeometry
-      description: GeoJSON LineString — drop straight into `L.geoJSON()` to draw the
-        path.
+      description: GeoJSON LineString. Pass it to L.geoJSON() to draw the path on
+        the map.
     RoutePoint:
       properties:
         lat:
