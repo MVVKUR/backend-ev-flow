@@ -27,3 +27,8 @@ def test_stations_and_lookups_served_from_db():
         assert all(s["speed_tier"] == "fast" for s in filtered)
         dists = [s["distance_km"] for s in filtered]
         assert dists == sorted(dists)
+        # nearby WITHOUT location (permission denied): filter only, still returns matches
+        no_loc = c.get("/api/v1/stations/nearby?connector_type=CCS2&speed_tier=fast&limit=5").json()
+        assert all("CCS2" in s["connector_types"] for s in no_loc)
+        # only one of lat/lon -> 422
+        assert c.get("/api/v1/stations/nearby?lat=-6.2").status_code == 422

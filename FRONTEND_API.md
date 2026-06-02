@@ -91,10 +91,14 @@ Response (RFC 7946 FeatureCollection):
 Satisfies AC 1.1.1 (default 5 km radius). Results are sorted by distance and each carries
 `distance_km`.
 
-Query params: `lat` (req), `lon` (req), `radius_km` (default 5, max 500),
-`limit` (default 20, max 200), and the same filters as `/stations`: `connector_type`, `speed_tier`,
-`min_power`, `max_power`. So "filter + near me" is one call; results stay sorted by distance.
-For discovery without location (permission denied), use `/api/v1/stations` with the same filters.
+Query params: `lat`, `lon` (both optional, pass them together), `radius_km` (default 5, max 500),
+`limit` (default 20, max 200), plus the same filters as `/stations`: `connector_type`, `speed_tier`,
+`min_power`, `max_power`.
+- **With `lat`+`lon`** (location granted): stations within the radius, sorted by distance, each with `distance_km`.
+- **Without them** (location denied): a filtered list (no `distance_km`, not distance-sorted).
+- Passing only one of `lat`/`lon` returns `422`.
+
+So one endpoint covers both cases: "filter + near me" when you have location, "filter only" when you do not.
 
 ```js
 const near = await (await fetch(

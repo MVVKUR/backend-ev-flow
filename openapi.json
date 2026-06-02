@@ -252,24 +252,42 @@
           {
             "name": "lat",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "number",
-              "maximum": 90,
-              "minimum": -90,
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 90,
+                  "minimum": -90
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Origin latitude. Omit (with lon) if location is denied.",
               "title": "Lat"
-            }
+            },
+            "description": "Origin latitude. Omit (with lon) if location is denied."
           },
           {
             "name": "lon",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "number",
-              "maximum": 180,
-              "minimum": -180,
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 180,
+                  "minimum": -180
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Origin longitude. Omit (with lat) if location is denied.",
               "title": "Lon"
-            }
+            },
+            "description": "Origin longitude. Omit (with lat) if location is denied."
           },
           {
             "name": "radius_km",
