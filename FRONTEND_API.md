@@ -159,7 +159,7 @@ Computes a road route from an origin to either a **station** or an arbitrary poi
 returns a **GeoJSON `LineString`** you draw directly. The frontend never sees graph internals.
 
 Query params:
-- `lat`, `lon` — origin (required)
+- `lat`, `lon` — origin (needed to route; `422` if omitted)
 - **destination** — either `station_id`, **or** both `dest_lat` + `dest_lon`
 - `weight` — `length` (shortest distance, default) or `travel_time` (fastest)
 
@@ -206,7 +206,7 @@ Two ways to express the battery range:
   the remaining range from the EV catalogue (see §4.8). Just send what the user picked.
 - **Pass a number:** `max_range_km` — if you've already computed remaining range yourself.
 
-`ev_model_id` overrides `max_range_km`. Other params: `lat`, `lon` (required),
+`ev_model_id` overrides `max_range_km`. Other params: `lat`, `lon` (origin; needed to route, `422` if omitted),
 `weight` (`length`|`travel_time`).
 
 ```js

@@ -645,34 +645,48 @@
           {
             "name": "lat",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "number",
-              "maximum": 90,
-              "minimum": -90,
-              "description": "Origin latitude.",
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 90,
+                  "minimum": -90
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Origin latitude (needed to route).",
               "examples": [
                 -6.2088
               ],
               "title": "Lat"
             },
-            "description": "Origin latitude."
+            "description": "Origin latitude (needed to route)."
           },
           {
             "name": "lon",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "number",
-              "maximum": 180,
-              "minimum": -180,
-              "description": "Origin longitude.",
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 180,
+                  "minimum": -180
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Origin longitude (needed to route).",
               "examples": [
                 106.8456
               ],
               "title": "Lon"
             },
-            "description": "Origin longitude."
+            "description": "Origin longitude (needed to route)."
           },
           {
             "name": "station_id",
@@ -780,34 +794,48 @@
           {
             "name": "lat",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "number",
-              "maximum": 90,
-              "minimum": -90,
-              "description": "Origin latitude.",
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 90,
+                  "minimum": -90
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Origin latitude (needed to route).",
               "examples": [
                 -6.2088
               ],
               "title": "Lat"
             },
-            "description": "Origin latitude."
+            "description": "Origin latitude (needed to route)."
           },
           {
             "name": "lon",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "number",
-              "maximum": 180,
-              "minimum": -180,
-              "description": "Origin longitude.",
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 180,
+                  "minimum": -180
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Origin longitude (needed to route).",
               "examples": [
                 106.8456
               ],
               "title": "Lon"
             },
-            "description": "Origin longitude."
+            "description": "Origin longitude (needed to route)."
           },
           {
             "name": "weight",

@@ -177,14 +177,16 @@ def stations_geojson(
                     422: {"description": "Destination not provided"},
                     503: {"description": "Road graph unavailable (not built yet)"}})
 def route(
-    lat: float = Query(..., ge=-90, le=90, description="Origin latitude.", examples=[-6.2088]),
-    lon: float = Query(..., ge=-180, le=180, description="Origin longitude.", examples=[106.8456]),
+    lat: Optional[float] = Query(None, ge=-90, le=90, description="Origin latitude (needed to route).", examples=[-6.2088]),
+    lon: Optional[float] = Query(None, ge=-180, le=180, description="Origin longitude (needed to route).", examples=[106.8456]),
     station_id: Optional[str] = Query(None, description="Destination = this station's coordinates."),
     dest_lat: Optional[float] = Query(None, ge=-90, le=90, description="Destination latitude (if no station_id)."),
     dest_lon: Optional[float] = Query(None, ge=-180, le=180, description="Destination longitude (if no station_id)."),
     weight: str = Query("length", pattern="^(length|travel_time)$",
                         description="Minimise 'length' (shortest) or 'travel_time' (fastest)."),
 ) -> Route:
+    if lat is None or lon is None:
+        raise HTTPException(422, "origin 'lat' and 'lon' are required")
     if station_id:
         row = repo.get_station(station_id)
         if row is None:
@@ -210,8 +212,8 @@ def route(
          responses={404: {"description": "No stations loaded / none reachable by road"},
                     503: {"description": "Road graph unavailable (not built yet)"}})
 def nearest_station(
-    lat: float = Query(..., ge=-90, le=90, description="Origin latitude.", examples=[-6.2088]),
-    lon: float = Query(..., ge=-180, le=180, description="Origin longitude.", examples=[106.8456]),
+    lat: Optional[float] = Query(None, ge=-90, le=90, description="Origin latitude (needed to route).", examples=[-6.2088]),
+    lon: Optional[float] = Query(None, ge=-180, le=180, description="Origin longitude (needed to route).", examples=[106.8456]),
     weight: str = Query("length", pattern="^(length|travel_time)$",
                         description="Rank by 'length' (nearest) or 'travel_time' (quickest)."),
     max_range_km: Optional[float] = Query(
@@ -223,6 +225,8 @@ def nearest_station(
     current_soc: Optional[float] = Query(
         None, ge=0, le=100, description="Current state of charge (%); required when ev_model_id is given."),
 ) -> NearestStationRoute:
+    if lat is None or lon is None:
+        raise HTTPException(422, "origin 'lat' and 'lon' are required")
     range_used = max_range_km
     if ev_model_id is not None:
         if current_soc is None:
