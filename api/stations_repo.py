@@ -23,9 +23,10 @@ def _filter_clauses(filters: dict) -> tuple[list[str], dict]:
     if filters.get("source"):
         clauses.append(":source = ANY(sources)"); params["source"] = filters["source"]
     if filters.get("connector_type"):
-        clauses.append(":ct = ANY(connector_types)"); params["ct"] = filters["connector_type"]
+        # OR within the filter: station matches if its connector_types overlaps the requested set
+        clauses.append("connector_types && :cts"); params["cts"] = list(filters["connector_type"])
     if filters.get("speed_tier"):
-        clauses.append("speed_tier = :st"); params["st"] = filters["speed_tier"]
+        clauses.append("speed_tier = ANY(:tiers)"); params["tiers"] = list(filters["speed_tier"])
     if filters.get("province"):
         clauses.append("lower(province) = lower(:prov)"); params["prov"] = filters["province"]
     if filters.get("city"):

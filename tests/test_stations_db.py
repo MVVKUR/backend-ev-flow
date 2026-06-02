@@ -32,3 +32,11 @@ def test_stations_and_lookups_served_from_db():
         assert all("CCS2" in s["connector_types"] for s in no_loc)
         # only one of lat/lon -> 422
         assert c.get("/api/v1/stations/nearby?lat=-6.2").status_code == 422
+        # multi-select (repeated param): speed_tier=fast OR ultra_fast
+        multi = c.get("/api/v1/stations?speed_tier=fast&speed_tier=ultra_fast&limit=50").json()
+        assert multi["total"] > 0
+        assert all(s["speed_tier"] in ("fast", "ultra_fast") for s in multi["items"])
+        # multi-select connectors: CCS2 OR AC Type 2
+        mc = c.get("/api/v1/stations?connector_type=CCS2&connector_type=AC%20Type%202&limit=50").json()
+        assert all("CCS2" in s["connector_types"] or "AC Type 2" in s["connector_types"]
+                   for s in mc["items"])

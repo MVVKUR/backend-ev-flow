@@ -82,25 +82,29 @@ paths:
         required: false
         schema:
           anyOf:
-          - type: string
+          - type: array
+            items:
+              type: string
           - type: 'null'
-          description: Connector standard, e.g. 'CCS2' or 'AC Type 2' (see /api/v1/connectors).
-            Currently inferred.
-          examples:
-          - CCS2
+          description: Connector standard(s); repeatable for multi-select (OR), e.g.
+            ?connector_type=CCS2&connector_type=AC%20Type%202 (see /api/v1/connectors).
           title: Connector Type
-        description: Connector standard, e.g. 'CCS2' or 'AC Type 2' (see /api/v1/connectors).
-          Currently inferred.
+        description: Connector standard(s); repeatable for multi-select (OR), e.g.
+          ?connector_type=CCS2&connector_type=AC%20Type%202 (see /api/v1/connectors).
       - name: speed_tier
         in: query
         required: false
         schema:
           anyOf:
-          - type: string
+          - type: array
+            items:
+              type: string
           - type: 'null'
-          description: 'Speed tier: slow / medium / fast / ultra_fast (see /api/v1/speed-tiers).'
+          description: 'Speed tier(s); repeatable for multi-select (OR): slow / medium
+            / fast / ultra_fast (see /api/v1/speed-tiers).'
           title: Speed Tier
-        description: 'Speed tier: slow / medium / fast / ultra_fast (see /api/v1/speed-tiers).'
+        description: 'Speed tier(s); repeatable for multi-select (OR): slow / medium
+          / fast / ultra_fast (see /api/v1/speed-tiers).'
       - name: bbox
         in: query
         required: false
@@ -201,17 +205,19 @@ paths:
         required: false
         schema:
           anyOf:
-          - type: string
+          - type: array
+            items:
+              type: string
           - type: 'null'
-          examples:
-          - CCS2
           title: Connector Type
       - name: speed_tier
         in: query
         required: false
         schema:
           anyOf:
-          - type: string
+          - type: array
+            items:
+              type: string
           - type: 'null'
           title: Speed Tier
       - name: min_power
@@ -330,17 +336,19 @@ paths:
         required: false
         schema:
           anyOf:
-          - type: string
+          - type: array
+            items:
+              type: string
           - type: 'null'
-          examples:
-          - CCS2
           title: Connector Type
       - name: speed_tier
         in: query
         required: false
         schema:
           anyOf:
-          - type: string
+          - type: array
+            items:
+              type: string
           - type: 'null'
           title: Speed Tier
       - name: bbox

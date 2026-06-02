@@ -151,6 +151,14 @@ Same filters as the GeoJSON endpoint, plus `limit` (default 100, max 1000) and `
 // only CCS2 ultra-fast chargers in the viewport
 `${API}/api/v1/stations.geojson?connector_type=CCS2&speed_tier=ultra_fast&bbox=...`
 ```
+**Multi-select:** `connector_type` and `speed_tier` are repeatable. Repeat the param to OR them
+(works on `/stations`, `/stations.geojson`, and `/nearby`):
+```
+?speed_tier=fast&speed_tier=ultra_fast&connector_type=CCS2&connector_type=AC%20Type%202
+```
+Within a filter the values are ORed (any match); across filters they are ANDed. In JS:
+`selected.forEach(v => params.append("speed_tier", v))`.
+
 ⚠️ `connector_type` is **inferred** (see §5) — stations carry `connector_inferred: true`. It's
 the station's *primary* connector, so don't treat a missing type as "definitely no CCS2".
 
