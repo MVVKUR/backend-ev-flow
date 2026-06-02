@@ -188,6 +188,42 @@ paths:
           minimum: 1
           default: 20
           title: Limit
+      - name: connector_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          examples:
+          - CCS2
+          title: Connector Type
+      - name: speed_tier
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Speed Tier
+      - name: min_power
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            minimum: 0
+          - type: 'null'
+          title: Min Power
+      - name: max_power
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            minimum: 0
+          - type: 'null'
+          title: Max Power
       responses:
         '200':
           description: Successful Response

@@ -20,3 +20,10 @@ def test_stations_and_lookups_served_from_db():
         assert tiers == {"slow", "medium", "fast", "ultra_fast"}
         near = c.get("/api/v1/stations/nearby?lat=-6.2088&lon=106.8456&radius_km=5&limit=3").json()
         assert all("distance_km" in s for s in near)
+        # nearby + filter: every result must include the requested connector and be sorted by distance
+        filtered = c.get("/api/v1/stations/nearby?lat=-6.2088&lon=106.8456"
+                         "&radius_km=10&connector_type=CCS2&speed_tier=fast&limit=5").json()
+        assert all("CCS2" in s["connector_types"] for s in filtered)
+        assert all(s["speed_tier"] == "fast" for s in filtered)
+        dists = [s["distance_km"] for s in filtered]
+        assert dists == sorted(dists)

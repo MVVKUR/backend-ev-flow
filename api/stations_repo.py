@@ -17,7 +17,8 @@ _COLS = """
 """
 
 
-def _where(filters: dict) -> tuple[str, dict]:
+def _filter_clauses(filters: dict) -> tuple[list[str], dict]:
+    """Build SQL WHERE clauses + params from a filters dict (shared by list + nearby)."""
     clauses, params = [], {}
     if filters.get("source"):
         clauses.append(":source = ANY(sources)"); params["source"] = filters["source"]
@@ -39,6 +40,11 @@ def _where(filters: dict) -> tuple[str, dict]:
         mnlon, mnlat, mxlon, mxlat = filters["bbox"]
         clauses.append("geom && ST_MakeEnvelope(:mnlon,:mnlat,:mxlon,:mxlat,4326)")
         params.update(mnlon=mnlon, mnlat=mnlat, mxlon=mxlon, mxlat=mxlat)
+    return clauses, params
+
+
+def _where(filters: dict) -> tuple[str, dict]:
+    clauses, params = _filter_clauses(filters)
     sql = (" WHERE " + " AND ".join(clauses)) if clauses else ""
     return sql, params
 
@@ -62,16 +68,15 @@ def get_station(station_id: str) -> Optional[dict]:
 
 
 def nearby(lat: float, lon: float, radius_km: float, limit: int,
-           source: Optional[str] = None) -> list[dict]:
-    src = " AND :source = ANY(sources)" if source else ""
-    params = {"lat": lat, "lon": lon, "r": radius_km * 1000.0, "lim": limit}
-    if source:
-        params["source"] = source
+           filters: Optional[dict] = None) -> list[dict]:
+    clauses, params = _filter_clauses(filters or {})
+    extra = (" AND " + " AND ".join(clauses)) if clauses else ""
+    params.update(lat=lat, lon=lon, r=radius_km * 1000.0, lim=limit)
     sql = f"""
         SELECT {_COLS},
                ST_Distance(geom::geography, ST_SetSRID(ST_MakePoint(:lon,:lat),4326)::geography)/1000.0 AS distance_km
         FROM stations
-        WHERE ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(:lon,:lat),4326)::geography, :r){src}
+        WHERE ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(:lon,:lat),4326)::geography, :r){extra}
         ORDER BY distance_km ASC
         LIMIT :lim
     """

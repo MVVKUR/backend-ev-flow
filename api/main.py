@@ -119,8 +119,14 @@ def list_stations(
 @app.get("/api/v1/stations/nearby", response_model=list[Station], tags=["stations"],
          summary="Nearest stations to a point ('near me')")
 def nearby(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180),
-           radius_km: float = Query(5.0, gt=0, le=500), limit: int = Query(20, ge=1, le=200)) -> list[Station]:
-    rows = repo.nearby(lat, lon, radius_km, limit)
+           radius_km: float = Query(5.0, gt=0, le=500), limit: int = Query(20, ge=1, le=200),
+           connector_type: Optional[str] = Query(None, examples=["CCS2"]),
+           speed_tier: Optional[str] = Query(None),
+           min_power: Optional[float] = Query(None, ge=0),
+           max_power: Optional[float] = Query(None, ge=0)) -> list[Station]:
+    filters = {"connector_type": connector_type, "speed_tier": speed_tier,
+               "min_power": min_power, "max_power": max_power}
+    rows = repo.nearby(lat, lon, radius_km, limit, filters)
     return [_row_to_station(r) for r in rows]
 
 

@@ -92,7 +92,9 @@ Satisfies AC 1.1.1 (default 5 km radius). Results are sorted by distance and eac
 `distance_km`.
 
 Query params: `lat` (req), `lon` (req), `radius_km` (default 5, max 500),
-`limit` (default 20, max 200).
+`limit` (default 20, max 200), and the same filters as `/stations`: `connector_type`, `speed_tier`,
+`min_power`, `max_power`. So "filter + near me" is one call; results stay sorted by distance.
+For discovery without location (permission denied), use `/api/v1/stations` with the same filters.
 
 ```js
 const near = await (await fetch(
