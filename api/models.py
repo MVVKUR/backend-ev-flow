@@ -1,6 +1,7 @@
 """Pydantic request and response models. These drive the OpenAPI (Swagger) schema."""
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
@@ -152,3 +153,32 @@ class EVModelList(BaseModel):
     limit: int = Field(..., examples=[100])
     offset: int = Field(..., examples=[0])
     items: list[EVModel]
+
+
+# ---- wallet / top-up (Epic 3.0: Xendit integration) -------------------------
+class TopupRequest(BaseModel):
+    amount_idr: int = Field(..., ge=10000, description="Top-up amount in IDR (Xendit min 10000).", examples=[50000])
+
+
+class TopupCreated(BaseModel):
+    topup_id: str
+    amount_idr: int
+    status: str = Field(..., examples=["pending"])
+    invoice_url: str = Field(..., description="Open this hosted Xendit page to pay.")
+
+
+class WalletBalance(BaseModel):
+    balance_idr: int = Field(..., examples=[200000])
+    currency: str = Field("IDR", examples=["IDR"])
+    updated_at: datetime
+
+
+class Topup(BaseModel):
+    id: str
+    external_id: str
+    xendit_invoice_id: Optional[str] = None
+    amount_idr: int
+    status: str = Field(..., examples=["paid"])
+    invoice_url: Optional[str] = None
+    created_at: datetime
+    paid_at: Optional[datetime] = None
