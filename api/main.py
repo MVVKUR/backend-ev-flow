@@ -7,19 +7,23 @@ Spec: http://localhost:8000/openapi.json
 from __future__ import annotations
 
 import os
+import uuid
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__, evmodels
 from . import connectors as conn
 from . import stations_repo as repo
+from . import xendit
+from . import wallet_repo as wallet
 from .models import (
     EVModel, EVModelList, GeoJSONFeatureCollection, Health, NameCount,
     NearestStationRoute, Route, SourceCount, SpeedTier, Station,
     StationList, Stats,
+    Topup, TopupCreated, TopupRequest, WalletBalance,
 )
 
 
@@ -28,6 +32,7 @@ TAGS = [
     {"name": "geo", "description": "GeoJSON output for direct map rendering."},
     {"name": "meta", "description": "Stats and filter look-ups (sources, provinces, cities)."},
     {"name": "ev-models", "description": "EV model catalogue (battery / range) for range-aware routing."},
+    {"name": "wallet", "description": "Wallet balance + Xendit top-up (payment)."},
     {"name": "system", "description": "Health/diagnostics."},
 ]
 
@@ -279,6 +284,43 @@ def ev_model(model_id: str) -> EVModel:
     if m is None:
         raise HTTPException(404, f"ev model '{model_id}' not found")
     return EVModel(**m)
+
+
+@app.post("/api/v1/wallet/topup", response_model=TopupCreated, tags=["wallet"],
+          summary="Create a Xendit invoice to top up the wallet",
+          responses={502: {"description": "Payment provider error"}})
+def wallet_topup(body: TopupRequest) -> TopupCreated:
+    external_id = f"topup-{uuid.uuid4()}"
+    try:
+        inv = xendit.create_invoice(external_id, body.amount_idr, "EV-FLOW wallet top-up")
+    except xendit.XenditError as e:
+        raise HTTPException(502, f"payment provider error: {e}")
+    row = wallet.create_topup(body.amount_idr, external_id, inv["id"], inv["invoice_url"])
+    return TopupCreated(**row)
+
+
+@app.get("/api/v1/wallet", response_model=WalletBalance, tags=["wallet"], summary="Wallet balance")
+def wallet_balance() -> WalletBalance:
+    w = wallet.get_wallet()
+    return WalletBalance(balance_idr=w["balance_idr"], updated_at=w["updated_at"])
+
+
+@app.post("/api/v1/webhooks/xendit", tags=["wallet"],
+          summary="Xendit invoice webhook (credits the wallet on PAID)",
+          responses={401: {"description": "Invalid callback token"}})
+def xendit_webhook(payload: dict, x_callback_token: Optional[str] = Header(None)):
+    expected = os.getenv("XENDIT_CALLBACK_TOKEN", "")
+    if not expected or x_callback_token != expected:
+        raise HTTPException(401, "invalid callback token")
+    if payload.get("status") == "PAID" and payload.get("id"):
+        wallet.mark_paid_and_credit(payload["id"])
+    return {"ok": True}
+
+
+@app.get("/api/v1/wallet/topups", response_model=list[Topup], tags=["wallet"],
+         summary="Recent top-ups")
+def wallet_topups(limit: int = Query(20, ge=1, le=100)) -> list[Topup]:
+    return [Topup(**t) for t in wallet.list_topups(limit)]
 
 
 @app.get("/api/v1/stats", response_model=Stats, tags=["meta"], summary="Aggregate statistics")
