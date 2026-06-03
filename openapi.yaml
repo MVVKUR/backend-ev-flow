@@ -651,6 +651,115 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/wallet/topup:
+    post:
+      tags:
+      - wallet
+      summary: Create a Xendit invoice to top up the wallet
+      operationId: wallet_topup_api_v1_wallet_topup_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopupRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopupCreated'
+        '502':
+          description: Payment provider error
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/wallet:
+    get:
+      tags:
+      - wallet
+      summary: Wallet balance
+      operationId: wallet_balance_api_v1_wallet_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletBalance'
+  /api/v1/webhooks/xendit:
+    post:
+      tags:
+      - wallet
+      summary: Xendit invoice webhook (credits the wallet on PAID)
+      operationId: xendit_webhook_api_v1_webhooks_xendit_post
+      parameters:
+      - name: x-callback-token
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Callback-Token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              title: Payload
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Invalid callback token
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/wallet/topups:
+    get:
+      tags:
+      - wallet
+      summary: Recent top-ups
+      operationId: wallet_topups_api_v1_wallet_topups_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Topup'
+                title: Response Wallet Topups Api V1 Wallet Topups Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/stats:
     get:
       tags:
@@ -1341,6 +1450,87 @@ components:
       - by_charge_type
       - with_power_kw
       title: Stats
+    Topup:
+      properties:
+        id:
+          type: string
+          title: Id
+        external_id:
+          type: string
+          title: External Id
+        xendit_invoice_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Xendit Invoice Id
+        amount_idr:
+          type: integer
+          title: Amount Idr
+        status:
+          type: string
+          title: Status
+          examples:
+          - paid
+        invoice_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invoice Url
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        paid_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Paid At
+      type: object
+      required:
+      - id
+      - external_id
+      - amount_idr
+      - status
+      - created_at
+      title: Topup
+    TopupCreated:
+      properties:
+        topup_id:
+          type: string
+          title: Topup Id
+        amount_idr:
+          type: integer
+          title: Amount Idr
+        status:
+          type: string
+          title: Status
+          examples:
+          - pending
+        invoice_url:
+          type: string
+          title: Invoice Url
+          description: Open this hosted Xendit page to pay.
+      type: object
+      required:
+      - topup_id
+      - amount_idr
+      - status
+      - invoice_url
+      title: TopupCreated
+    TopupRequest:
+      properties:
+        amount_idr:
+          type: integer
+          minimum: 10000.0
+          title: Amount Idr
+          description: Top-up amount in IDR (Xendit min 10000).
+          examples:
+          - 50000
+      type: object
+      required:
+      - amount_idr
+      title: TopupRequest
     ValidationError:
       properties:
         loc:
@@ -1367,6 +1557,28 @@ components:
       - msg
       - type
       title: ValidationError
+    WalletBalance:
+      properties:
+        balance_idr:
+          type: integer
+          title: Balance Idr
+          examples:
+          - 200000
+        currency:
+          type: string
+          title: Currency
+          default: IDR
+          examples:
+          - IDR
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - balance_idr
+      - updated_at
+      title: WalletBalance
 tags:
 - name: stations
   description: Query and fetch charging stations.
@@ -1376,5 +1588,7 @@ tags:
   description: Stats and filter look-ups (sources, provinces, cities).
 - name: ev-models
   description: EV model catalogue (battery / range) for range-aware routing.
+- name: wallet
+  description: Wallet balance + Xendit top-up (payment).
 - name: system
   description: Health/diagnostics.

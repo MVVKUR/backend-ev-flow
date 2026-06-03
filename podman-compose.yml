@@ -39,6 +39,9 @@ services:
       WEB_CONCURRENCY: "${WEB_CONCURRENCY:-2}"
       CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-*}"
       DATABASE_URL: "postgresql+psycopg://evflow:evflow@localhost:5432/evflow"
+      XENDIT_SECRET_KEY: "${XENDIT_SECRET_KEY:-}"
+      XENDIT_BASE_URL: "${XENDIT_BASE_URL:-https://api.xendit.co}"
+      XENDIT_CALLBACK_TOKEN: "${XENDIT_CALLBACK_TOKEN:-}"
     volumes:
       # Station data (+ optional routing graph) live on the host, mounted read-only.
       # :Z relabels for SELinux hosts (Fedora/RHEL) and is harmless elsewhere.
