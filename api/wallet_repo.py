@@ -48,4 +48,4 @@ def list_topups(limit: int = 20) -> list[dict]:
             SELECT id, external_id, xendit_invoice_id, amount_idr, status, invoice_url, created_at, paid_at
             FROM topups ORDER BY created_at DESC LIMIT :lim
         """), {"lim": limit}).mappings().all()
-    return [dict(r) for r in rows]
+    return [{**dict(r), "id": str(r["id"])} for r in rows]
