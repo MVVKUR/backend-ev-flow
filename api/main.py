@@ -57,7 +57,7 @@ _allow_origins = ["*"] if _origins_env in ("", "*") else [o.strip() for o in _or
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allow_origins,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
