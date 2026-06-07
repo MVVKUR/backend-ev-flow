@@ -7,6 +7,7 @@ within 75 m, then truncates and inserts the unique stations.
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -14,26 +15,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy import text          # noqa: E402
 
-from api import connectors, dedup, sources  # noqa: E402
+from api import dedup, sources  # noqa: E402
 from api.db import engine            # noqa: E402
 
 _INSERT = text("""
     INSERT INTO stations
       (id, geom, name, address, province, city, operator, power_kw, speed_tier,
-       connector_types, connector_inferred, sources, status, date_verified)
+       connector_types, connector_inferred, connectors, sources, status, date_verified)
     VALUES
       (:id, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :name, :address, :province,
        :city, :operator, :power_kw, :speed_tier, :connector_types, :connector_inferred,
-       :sources, :status, :date_verified)
+       CAST(:connectors AS jsonb), :sources, :status, :date_verified)
 """)
 
 
 def build_stations() -> list[dict]:
-    merged = dedup.cluster_stations(sources.normalized_rows())
-    for m in merged:
-        m["speed_tier"] = connectors.speed_tier(m.get("power_kw"), m.get("charge_type"))
-        m["connector_inferred"] = True
-    return merged
+    return dedup.cluster_stations(sources.normalized_rows())
 
 
 def main() -> None:
@@ -49,6 +46,7 @@ def main() -> None:
                 "speed_tier": s.get("speed_tier"),
                 "connector_types": list(s.get("connector_types") or []),
                 "connector_inferred": bool(s.get("connector_inferred", True)),
+                "connectors": json.dumps(s.get("connectors") or []),
                 "sources": list(s.get("sources") or []),
                 "status": s.get("status"), "date_verified": s.get("date_verified"),
             })
