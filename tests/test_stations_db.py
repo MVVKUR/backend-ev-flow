@@ -40,3 +40,18 @@ def test_stations_and_lookups_served_from_db():
         mc = c.get("/api/v1/stations?connector_type=CCS2&connector_type=AC%20Type%202&limit=50").json()
         assert all("CCS2" in s["connector_types"] or "AC Type 2" in s["connector_types"]
                    for s in mc["items"])
+
+
+@requires_db
+def test_stations_expose_connectors():
+    from api import main
+    with TestClient(main.app) as c:
+        body = c.get("/api/v1/stations?limit=200").json()
+        # every station has a connectors list; entries have the documented shape
+        for s in body["items"]:
+            assert isinstance(s["connectors"], list)
+            for conn in s["connectors"]:
+                assert set(conn) >= {"type", "count", "speed_tier", "power_kw", "type_inferred"}
+                assert conn["type"] in ("CCS2", "AC Type 2")
+        # at least one OCM-backed station has real per-connector counts
+        assert any(sum(x["count"] for x in s["connectors"]) >= 2 for s in body["items"])
