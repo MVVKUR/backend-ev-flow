@@ -17,7 +17,7 @@ class Source(str, Enum):
 class Connector(BaseModel):
     type: str = Field(..., description="Connector standard (inferred from power).", examples=["CCS2"])
     count: int = Field(..., description="Number of this connector at the station.", examples=[2])
-    speed_tier: str = Field(..., examples=["ultra_fast"])
+    speed_tier: Optional[str] = Field(None, examples=["ultra_fast"])
     power_kw: Optional[float] = Field(None, examples=[200.0])
     type_inferred: bool = Field(True, description="True when the type is inferred from power, not source data.")
 

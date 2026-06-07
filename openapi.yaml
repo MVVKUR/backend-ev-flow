@@ -885,7 +885,9 @@ components:
           examples:
           - 2
         speed_tier:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Speed Tier
           examples:
           - ultra_fast
@@ -905,7 +907,6 @@ components:
       required:
       - type
       - count
-      - speed_tier
       title: Connector
     EVModel:
       properties:
