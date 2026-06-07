@@ -14,6 +14,14 @@ class Source(str, Enum):
     osm = "osm"
 
 
+class Connector(BaseModel):
+    type: str = Field(..., description="Connector standard (inferred from power).", examples=["CCS2"])
+    count: int = Field(..., description="Number of this connector at the station.", examples=[2])
+    speed_tier: str = Field(..., examples=["ultra_fast"])
+    power_kw: Optional[float] = Field(None, examples=[200.0])
+    type_inferred: bool = Field(True, description="True when the type is inferred from power, not source data.")
+
+
 class Station(BaseModel):
     id: str = Field(..., description="Stable unique id, '<source>-<n>'.", examples=["pln_spklu-1"])
     name: Optional[str] = Field(None, examples=["SPKLU PLN UID JAKARTA RAYA"])
@@ -31,7 +39,9 @@ class Station(BaseModel):
     charge_type: Optional[str] = Field(None, description="slow / medium / fast where known.", examples=["medium"])
     speed_tier: Optional[str] = Field(
         None, description="Speed bucket from power: slow / medium / fast / ultra_fast.", examples=["medium"])
-    connectors: Optional[int] = Field(None, description="Number of connectors/points.", examples=[2])
+    connectors: list[Connector] = Field(
+        default_factory=list,
+        description="Per-connector breakdown: type (inferred), real count/power/speed.")
     connector_types: list[str] = Field(
         default_factory=list,
         description="Connector standards present, e.g. ['CCS2'] or ['AC Type 2']. Currently inferred.",
