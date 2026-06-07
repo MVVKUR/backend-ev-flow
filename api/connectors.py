@@ -15,6 +15,7 @@ Pure / stdlib-only so it is unit-testable without pandas.
 """
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 # AC ↔ DC split (kW). At/below this, public charging in Indonesia is AC Type 2;
@@ -72,3 +73,63 @@ def speed_tier(power_kw: Optional[float], charge_type: Optional[str] = None) -> 
     if ct in {"slow", "medium", "fast", "ultra_fast"}:
         return ct
     return None
+
+
+def build_connectors(connections: list[dict], charge_type: Optional[str] = None) -> list[dict]:
+    """Build an aggregated connector list from raw per-connection rows.
+
+    `connections` items are dicts with `power_kw` (float|None, NaN treated as None)
+    and `count` (int). Entries sharing the same (inferred type, power_kw) are merged
+    and their counts summed. Connections whose type cannot be inferred are dropped.
+    """
+    agg: dict = {}
+    order: list = []
+    for c in connections:
+        p = c.get("power_kw")
+        if isinstance(p, float) and math.isnan(p):
+            p = None
+        cnt = c.get("count") or 1
+        types = infer_connectors(p, charge_type)
+        if not types:
+            continue
+        key = (types[0], p)
+        if key not in agg:
+            agg[key] = {"type": types[0], "count": 0, "speed_tier": speed_tier(p, charge_type),
+                        "power_kw": p, "type_inferred": True}
+            order.append(key)
+        agg[key]["count"] += cnt
+    return [agg[k] for k in order]
+
+
+def merge_connectors(lists: list[list[dict]]) -> list[dict]:
+    """Merge several connector lists, grouping by (type, power_kw), count = MAX.
+
+    Used when dedup clusters points from multiple sources that describe the same
+    physical station: taking the max avoids double-counting shared connectors while
+    keeping the union of all known types.
+    """
+    agg: dict = {}
+    order: list = []
+    for lst in lists:
+        for c in (lst or []):
+            key = (c["type"], c.get("power_kw"))
+            if key not in agg:
+                agg[key] = dict(c)
+                order.append(key)
+            else:
+                agg[key]["count"] = max(agg[key].get("count", 1), c.get("count", 1))
+    return [agg[k] for k in order]
+
+
+def derive_station_fields(conns: list[dict]) -> dict:
+    """Derive station-level connector_types, power_kw, speed_tier, connector_inferred."""
+    if not conns:
+        return {"connector_types": [], "power_kw": None, "speed_tier": None, "connector_inferred": True}
+    powered = [c for c in conns if c.get("power_kw") is not None]
+    top = max(powered, key=lambda c: c["power_kw"]) if powered else conns[0]
+    return {
+        "connector_types": sorted({c["type"] for c in conns}),
+        "power_kw": top.get("power_kw"),
+        "speed_tier": top.get("speed_tier"),
+        "connector_inferred": any(c.get("type_inferred") for c in conns),
+    }
