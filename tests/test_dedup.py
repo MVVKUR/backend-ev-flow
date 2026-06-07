@@ -7,13 +7,17 @@ def _row(id, source, lat, lon, power=None, name=None, conns=None):
     return {"id": id, "source": source, "latitude": lat, "longitude": lon,
             "power_kw": power, "name": name, "address": None, "province": None,
             "city": None, "operator": None, "charge_type": None, "status": None,
-            "date_verified": None, "connector_types": conns or []}
+            "date_verified": None, "connectors": conns or []}
 
 
 @pytest.mark.unit
 def test_two_points_within_75m_merge():
-    a = _row("pln_spklu-1", "pln_spklu", -6.2000, 106.8000, power=22, conns=["AC Type 2"])
-    b = _row("open_charge_map-9", "open_charge_map", -6.20020, 106.8000, power=150, conns=["CCS2"])
+    a = _row("pln_spklu-1", "pln_spklu", -6.2000, 106.8000,
+             conns=[{"type": "AC Type 2", "count": 1, "speed_tier": "medium",
+                     "power_kw": 22, "type_inferred": True}])
+    b = _row("open_charge_map-9", "open_charge_map", -6.20020, 106.8000,
+             conns=[{"type": "CCS2", "count": 2, "speed_tier": "fast",
+                     "power_kw": 150, "type_inferred": True}])
     out = cluster_stations([a, b])
     assert len(out) == 1
     s = out[0]
@@ -21,6 +25,7 @@ def test_two_points_within_75m_merge():
     assert sorted(s["sources"]) == ["open_charge_map", "pln_spklu"]
     assert s["power_kw"] == 150
     assert sorted(s["connector_types"]) == ["AC Type 2", "CCS2"]
+    assert {c["type"] for c in s["connectors"]} == {"AC Type 2", "CCS2"}
 
 
 @pytest.mark.unit

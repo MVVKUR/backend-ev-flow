@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from math import asin, cos, radians, sin, sqrt
 
+from . import connectors
+
 MERGE_RADIUS_M = 75.0
 SOURCE_PRIORITY = {"pln_spklu": 0, "open_charge_map": 1, "osm": 2}
 _DESC_FIELDS = ("name", "address", "province", "city", "operator",
@@ -49,8 +51,7 @@ def cluster_stations(rows: list[dict], radius_m: float = MERGE_RADIUS_M) -> list
 def _new_cluster(r: dict) -> dict:
     c = dict(r)
     c["sources"] = [r["source"]]
-    c["_powers"] = [r.get("power_kw")]
-    c["_conns"] = list(r.get("connector_types") or [])
+    c["_conn_lists"] = [r.get("connectors") or []]
     return c
 
 
@@ -60,14 +61,10 @@ def _merge_into(c: dict, r: dict) -> None:
     for f in _DESC_FIELDS:
         if not c.get(f) and r.get(f):
             c[f] = r[f]
-    c["_powers"].append(r.get("power_kw"))
-    for t in (r.get("connector_types") or []):
-        if t not in c["_conns"]:
-            c["_conns"].append(t)
+    c["_conn_lists"].append(r.get("connectors") or [])
 
 
 def _finalize(c: dict) -> None:
-    powers = [p for p in c.pop("_powers") if p is not None]
-    c["power_kw"] = max(powers) if powers else None
-    c["connector_types"] = c.pop("_conns")
-    c["connector_inferred"] = True
+    merged = connectors.merge_connectors(c.pop("_conn_lists"))
+    c["connectors"] = merged
+    c.update(connectors.derive_station_fields(merged))
