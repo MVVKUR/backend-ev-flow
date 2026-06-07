@@ -1423,6 +1423,60 @@
   },
   "components": {
     "schemas": {
+      "Connector": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Connector standard (inferred from power).",
+            "examples": [
+              "CCS2"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of this connector at the station.",
+            "examples": [
+              2
+            ]
+          },
+          "speed_tier": {
+            "type": "string",
+            "title": "Speed Tier",
+            "examples": [
+              "ultra_fast"
+            ]
+          },
+          "power_kw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power Kw",
+            "examples": [
+              200.0
+            ]
+          },
+          "type_inferred": {
+            "type": "boolean",
+            "title": "Type Inferred",
+            "description": "True when the type is inferred from power, not source data.",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "count",
+          "speed_tier"
+        ],
+        "title": "Connector"
+      },
       "EVModel": {
         "properties": {
           "id": {
@@ -2103,19 +2157,12 @@
             ]
           },
           "connectors": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "items": {
+              "$ref": "#/components/schemas/Connector"
+            },
+            "type": "array",
             "title": "Connectors",
-            "description": "Number of connectors/points.",
-            "examples": [
-              2
-            ]
+            "description": "Per-connector breakdown: type (inferred), real count/power/speed."
           },
           "connector_types": {
             "items": {

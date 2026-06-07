@@ -13,7 +13,7 @@ from .db import engine
 _COLS = """
     id, name, ST_Y(geom) AS latitude, ST_X(geom) AS longitude, address, province,
     city, operator, power_kw, speed_tier, connector_types, connector_inferred,
-    sources, status, date_verified
+    connectors, sources, status, date_verified
 """
 
 

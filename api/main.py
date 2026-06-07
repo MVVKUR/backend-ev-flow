@@ -70,7 +70,7 @@ def _row_to_station(row: dict, distance_km: Optional[float] = None) -> Station:
         address=row.get("address"), province=row.get("province"), city=row.get("city"),
         operator=row.get("operator"), power_kw=row.get("power_kw"),
         charge_type=row.get("charge_type"), speed_tier=row.get("speed_tier"),
-        connectors=None, connector_types=row.get("connector_types") or [],
+        connectors=row.get("connectors") or [], connector_types=row.get("connector_types") or [],
         connector_inferred=row.get("connector_inferred"),
         status=row.get("status"), date_verified=row.get("date_verified"),
         distance_km=(round(distance_km, 3) if distance_km is not None else
