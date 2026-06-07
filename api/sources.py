@@ -83,6 +83,8 @@ def _load_ocm() -> list[dict]:
             "city": ai.get("Town"),
             "operator": (p.get("OperatorInfo") or {}).get("Title"),
             "power_kw": max(power) if power else math.nan,
+            "_connections": [{"power_kw": c.get("PowerKW"), "count": c.get("Quantity") or 1}
+                             for c in conns],
             "charge_type": None,
             "connectors": p.get("NumberOfPoints") or None,
             "status": None if stat is None else ("operational" if stat else "non-operational"),
@@ -132,14 +134,20 @@ def _clean_power(p):
 
 
 def normalized_rows() -> list[dict]:
-    """All source rows, normalized, with inferred connector_types + speed_tier."""
+    """All source rows, normalized, each with a `connectors` list + derived fields."""
     rows = _load_pln() + _load_ocm() + _load_osm()
     out = []
     for r in rows:
         if r.get("latitude") is None or r.get("longitude") is None:
             continue
-        r["power_kw"] = _clean_power(r.get("power_kw"))
-        r["speed_tier"] = connectors.speed_tier(r.get("power_kw"), r.get("charge_type"))
-        r["connector_types"] = connectors.infer_connectors(r.get("power_kw"), r.get("charge_type"))
+        conns_in = r.get("_connections")
+        if conns_in is None:  # PLN/OSM (and tests): one connection from station power + count
+            conns_in = [{"power_kw": _clean_power(r.get("power_kw")), "count": r.get("connectors") or 1}]
+        r["connectors"] = connectors.build_connectors(conns_in, r.get("charge_type"))
+        derived = connectors.derive_station_fields(r["connectors"])
+        r["connector_types"] = derived["connector_types"]
+        r["speed_tier"] = derived["speed_tier"]
+        r["power_kw"] = derived["power_kw"]
+        r["connector_inferred"] = derived["connector_inferred"]
         out.append(r)
     return out

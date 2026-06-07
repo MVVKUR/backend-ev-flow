@@ -32,3 +32,20 @@ def test_normalized_rows_nan_power_becomes_none(monkeypatch):
     monkeypatch.setattr(sources, "_load_ocm", lambda: [])
     monkeypatch.setattr(sources, "_load_osm", lambda: [])
     assert sources.normalized_rows()[0]["power_kw"] is None
+
+
+@pytest.mark.unit
+def test_normalized_rows_ocm_builds_per_connector_list(monkeypatch):
+    monkeypatch.setattr(sources, "_load_pln", lambda: [])
+    monkeypatch.setattr(sources, "_load_ocm", lambda: [{
+        "id": "open_charge_map-1", "source": "open_charge_map", "latitude": -6.2, "longitude": 106.8,
+        "name": "OCM", "address": None, "province": None, "city": None, "operator": None,
+        "power_kw": 200.0, "charge_type": None, "connectors": 3, "status": None, "date_verified": None,
+        "_connections": [{"power_kw": 200.0, "count": 2}, {"power_kw": 7.0, "count": 1}],
+    }])
+    monkeypatch.setattr(sources, "_load_osm", lambda: [])
+    row = sources.normalized_rows()[0]
+    assert {c["type"]: c["count"] for c in row["connectors"]} == {"CCS2": 2, "AC Type 2": 1}
+    assert row["connector_types"] == ["AC Type 2", "CCS2"]
+    assert row["power_kw"] == 200.0
+    assert row["speed_tier"] == "ultra_fast"
