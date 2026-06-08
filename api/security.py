@@ -45,17 +45,23 @@ def decode_access_token(token: str) -> str:
 
 
 def sign_state() -> str:
+    secret = _secret()
+    if not secret:
+        raise RuntimeError("JWT_SECRET is not set")
     nonce = secrets.token_urlsafe(16)
-    sig = hmac.new(_secret().encode(), nonce.encode(), hashlib.sha256).hexdigest()
+    sig = hmac.new(secret.encode(), nonce.encode(), hashlib.sha256).hexdigest()
     return f"{nonce}.{sig}"
 
 
 def verify_state(state: Optional[str]) -> bool:
+    secret = _secret()
+    if not secret:  # fail closed: an empty key would make state trivially forgeable
+        return False
     try:
         nonce, sig = (state or "").split(".", 1)
     except ValueError:
         return False
-    expected = hmac.new(_secret().encode(), nonce.encode(), hashlib.sha256).hexdigest()
+    expected = hmac.new(secret.encode(), nonce.encode(), hashlib.sha256).hexdigest()
     return hmac.compare_digest(sig, expected)
 
 

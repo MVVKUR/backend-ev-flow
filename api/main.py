@@ -55,9 +55,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Frontend calls this from a browser, so allow CORS. Restrict origins for production via
-# CORS_ALLOW_ORIGINS (comma-separated list); defaults to "*" (open, fine for read-only public
-# data, lock it down once auth/write endpoints are added).
+# Frontend calls this from a browser, so allow CORS. Auth/write endpoints are now live, so set
+# CORS_ALLOW_ORIGINS (comma-separated) to the frontend origin(s) in production; it defaults to "*"
+# (open) only for local/dev convenience.
 _origins_env = os.getenv("CORS_ALLOW_ORIGINS", "*").strip()
 _allow_origins = ["*"] if _origins_env in ("", "*") else [o.strip() for o in _origins_env.split(",") if o.strip()]
 app.add_middleware(
