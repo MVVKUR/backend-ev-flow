@@ -42,6 +42,12 @@ services:
       XENDIT_SECRET_KEY: "${XENDIT_SECRET_KEY:-}"
       XENDIT_BASE_URL: "${XENDIT_BASE_URL:-https://api.xendit.co}"
       XENDIT_CALLBACK_TOKEN: "${XENDIT_CALLBACK_TOKEN:-}"
+      JWT_SECRET: "${JWT_SECRET:-}"
+      JWT_EXPIRE_MINUTES: "${JWT_EXPIRE_MINUTES:-10080}"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
+      GOOGLE_REDIRECT_URI: "${GOOGLE_REDIRECT_URI:-}"
+      FRONTEND_URL: "${FRONTEND_URL:-}"
     volumes:
       # Station data (+ optional routing graph) live on the host, mounted read-only.
       # :Z relabels for SELinux hosts (Fedora/RHEL) and is harmless elsewhere.
