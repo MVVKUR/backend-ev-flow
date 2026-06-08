@@ -11,19 +11,24 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from . import __version__, evmodels
 from . import connectors as conn
 from . import stations_repo as repo
 from . import xendit
 from . import wallet_repo as wallet
+from . import security
+from . import google_oauth
+from . import users_repo
 from .models import (
     EVModel, EVModelList, GeoJSONFeatureCollection, Health, NameCount,
     NearestStationRoute, Route, SourceCount, SpeedTier, Station,
     StationList, Stats,
     Topup, TopupCreated, TopupRequest, WalletBalance,
+    LoginRequest, ProfileUpdate, RegisterRequest, TokenResponse, UserPublic,
 )
 
 
@@ -33,6 +38,7 @@ TAGS = [
     {"name": "meta", "description": "Stats and filter look-ups (sources, provinces, cities)."},
     {"name": "ev-models", "description": "EV model catalogue (battery / range) for range-aware routing."},
     {"name": "wallet", "description": "Wallet balance + Xendit top-up (payment)."},
+    {"name": "auth", "description": "Accounts + authentication (username/password + Google)."},
     {"name": "system", "description": "Health/diagnostics."},
 ]
 
@@ -321,6 +327,75 @@ def xendit_webhook(payload: dict, x_callback_token: Optional[str] = Header(None)
          summary="Recent top-ups")
 def wallet_topups(limit: int = Query(20, ge=1, le=100)) -> list[Topup]:
     return [Topup(**t) for t in wallet.list_topups(limit)]
+
+
+# ----------------------------------------------------------------------------- auth endpoints
+@app.post("/api/v1/auth/register", response_model=TokenResponse, status_code=201, tags=["auth"],
+          responses={409: {"description": "username taken"}})
+def register(body: RegisterRequest) -> TokenResponse:
+    if users_repo.get_by_username(body.username):
+        raise HTTPException(409, "username already taken")
+    completed = bool(body.ev_model_id and body.main_connector_type and body.location_consent)
+    user = users_repo.create_user(
+        username=body.username, password_hash=security.hash_password(body.password),
+        full_name=body.full_name, ev_model_id=body.ev_model_id,
+        main_connector_type=body.main_connector_type, location_consent=body.location_consent,
+        profile_completed=completed)
+    return TokenResponse(access_token=security.create_access_token(user["id"]), user=UserPublic(**user))
+
+
+@app.post("/api/v1/auth/login", response_model=TokenResponse, tags=["auth"],
+          responses={401: {"description": "bad credentials"}})
+def login(body: LoginRequest) -> TokenResponse:
+    user = users_repo.get_by_username(body.username)
+    if not user or not user.get("password_hash") or not security.verify_password(body.password, user["password_hash"]):
+        raise HTTPException(401, "invalid username or password")
+    return TokenResponse(access_token=security.create_access_token(user["id"]), user=UserPublic(**user))
+
+
+@app.get("/api/v1/auth/google/login", tags=["auth"], summary="Redirect to Google sign-in")
+def google_login():
+    return RedirectResponse(google_oauth.build_auth_url(security.sign_state()))
+
+
+@app.get("/api/v1/auth/google/callback", tags=["auth"], summary="Google OAuth callback")
+def google_callback(code: str, state: str):
+    if not security.verify_state(state):
+        raise HTTPException(400, "invalid state")
+    try:
+        info = google_oauth.exchange_code(code)
+    except google_oauth.GoogleOAuthError as e:
+        raise HTTPException(502, f"google error: {e}")
+    user = users_repo.get_by_google_sub(info["sub"]) or users_repo.create_user(
+        google_sub=info["sub"], email=info.get("email"), full_name=info.get("name"))
+    token = security.create_access_token(user["id"])
+    return RedirectResponse(f"{os.getenv('FRONTEND_URL', '')}/auth/callback#token={token}")
+
+
+@app.get("/api/v1/users/me", response_model=UserPublic, tags=["auth"], summary="Current user")
+def get_me(user: dict = Depends(security.current_user)) -> UserPublic:
+    return UserPublic(**user)
+
+
+@app.patch("/api/v1/users/me", response_model=UserPublic, tags=["auth"],
+           responses={409: {"description": "username taken"}})
+def patch_me(body: ProfileUpdate, user: dict = Depends(security.current_user)) -> UserPublic:
+    fields: dict = {}
+    if body.username is not None and body.username != user.get("username"):
+        if users_repo.get_by_username(body.username):
+            raise HTTPException(409, "username already taken")
+        fields["username"] = body.username
+    if body.ev_model_id is not None:
+        fields["ev_model_id"] = body.ev_model_id
+    if body.main_connector_type is not None:
+        fields["main_connector_type"] = body.main_connector_type
+    if body.location_consent is not None:
+        fields["location_consent"] = body.location_consent
+    merged = {**user, **fields}
+    completed = bool(merged.get("ev_model_id") and merged.get("main_connector_type")
+                     and merged.get("location_consent"))
+    updated = users_repo.update_profile(user["id"], fields, completed)
+    return UserPublic(**updated)
 
 
 @app.get("/api/v1/stats", response_model=Stats, tags=["meta"], summary="Aggregate statistics")
