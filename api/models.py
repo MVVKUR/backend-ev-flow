@@ -192,3 +192,44 @@ class Topup(BaseModel):
     invoice_url: Optional[str] = None
     created_at: datetime
     paid_at: Optional[datetime] = None
+
+
+# ---- authentication / accounts (Epic 5.0) ------------------------------------
+class RegisterRequest(BaseModel):
+    username: str = Field(..., min_length=3, examples=["budi"])
+    password: str = Field(..., min_length=8, examples=["s3cret123"])
+    full_name: Optional[str] = Field(None, examples=["Budi Santoso"])
+    ev_model_id: Optional[str] = Field(None, examples=["hyundai-ioniq-5"])
+    main_connector_type: Optional[str] = Field(None, examples=["CCS2"])
+    location_consent: bool = False
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class ProfileUpdate(BaseModel):
+    username: Optional[str] = Field(None, min_length=3)
+    ev_model_id: Optional[str] = None
+    main_connector_type: Optional[str] = None
+    location_consent: Optional[bool] = None
+
+
+class UserPublic(BaseModel):
+    id: str
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    account_type: str = "ev_user"
+    ev_model_id: Optional[str] = None
+    main_connector_type: Optional[str] = None
+    location_consent: bool = False
+    profile_completed: bool = False
+    created_at: datetime
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserPublic
